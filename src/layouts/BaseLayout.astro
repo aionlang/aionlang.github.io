@@ -5,14 +5,19 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  ogImage?: string;
   activeNav?: 'home' | 'docs' | 'downloads';
 }
 
 const {
   title,
   description = 'Aion is a statically typed, garbage-collected language that reads like a script and compiles to a native binary through LLVM.',
+  ogImage = '/assets/og.png',
   activeNav = 'home',
 } = Astro.props;
+
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://aionlang.github.io').toString();
+const ogImageUrl = new URL(ogImage, Astro.site ?? 'https://aionlang.github.io').toString();
 ---
 
 <!doctype html>
@@ -21,8 +26,26 @@ const {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/assets/aionsmall.ico" />
+    <link rel="canonical" href={canonicalUrl} />
     <title>{title}</title>
     <meta name="description" content={description} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aion Programming Language" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
     <ViewTransitions />
   </head>
   <body class="bg-[#131313] text-neutral-200 min-h-screen flex flex-col">
