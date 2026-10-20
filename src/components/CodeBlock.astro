@@ -1,0 +1,95 @@
+---
+interface Props {
+  code: string;
+  lang?: string;
+  title?: string;
+  output?: string;
+}
+
+const { code, lang = 'aion', title, output } = Astro.props;
+
+function highlightAion(raw: string): string {
+  const escaped = raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  return escaped
+    .split('\n')
+    .map((line) => {
+      let codePart = line;
+      let commentPart = '';
+      let inStr = false;
+      for (let i = 0; i < line.length - 1; i++) {
+        if (line[i] === '"' && (i === 0 || line[i - 1] !== '\\')) {
+          inStr = !inStr;
+        }
+        if (!inStr && line[i] === '/' && line[i + 1] === '/') {
+          codePart = line.slice(0, i);
+          commentPart = '<span class="tok-cmt">' + line.slice(i) + '</span>';
+          break;
+        }
+      }
+
+      const tokens: string[] = [];
+      const strRegex = /r?"""[\s\S]*?"""|r?"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+      let lastIdx = 0;
+      let match: RegExpExecArray | null;
+
+      const highlightNonString = (segment: string) => {
+        return segment
+          .replace(
+            /\b(fn|val|type|data|open|override|super|interface|enum|synonym|typealias|syn|import|from|as|if|else|when|while|for|in|step|downTo|return|break|continue|defer|try|catch|extern|static|init|constructor|vararg|this|null|true|false|is|launch|async|thread|compute|select)\b/g,
+            '<span class="tok-kw">$1</span>'
+          )
+          .replace(
+            /\b(Int|Int32|Byte|Float|Bool|Char|String|Bytes|Unit|Any|Array|List|Map|Set|Entry|Range|Stream|Result|Ok|Err|Job|Task|Channel|Thread|Mutex|AtomicInt|Comparable|StringBuilder|BytesBuilder|Predicate|Function|Consumer|Supplier|UnaryOperator|BinaryOperator|Comparator|BiPredicate|BiFunction|Stats|SelectCase)\b/g,
+            '<span class="tok-type">$1</span>'
+          )
+          .replace(
+            /\b(0x[0-9a-fA-F_]+|0b[01_]+|0o[0-7_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:e[+-]?\d+)?)\b/g,
+            '<span class="tok-num">$1</span>'
+          );
+      };
+
+      while ((match = strRegex.exec(codePart)) !== null) {
+        if (match.index > lastIdx) {
+          tokens.push(highlightNonString(codePart.slice(lastIdx, match.index)));
+        }
+        tokens.push('<span class="tok-str">' + match[0] + '</span>');
+        lastIdx = strRegex.lastIndex;
+      }
+      if (lastIdx < codePart.length) {
+        tokens.push(highlightNonString(codePart.slice(lastIdx)));
+      }
+
+      return tokens.join('') + commentPart;
+    })
+    .join('\n');
+}
+
+const highlighted = lang === 'aion' ? highlightAion(code.trim()) : code.trim()
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;');
+---
+
+<div class="code-block-wrapper my-4 rounded-lg overflow-hidden border border-[#2c2c2c] bg-[#161616]">
+  <div class="flex items-center justify-between px-3.5 py-1.5 bg-[#1e1e1e] border-b border-[#2c2c2c] text-xs">
+    <span class="font-mono text-neutral-400">{title || lang}</span>
+    <button
+      type="button"
+      data-copy-code
+      class="text-neutral-400 hover:text-white px-2 py-0.5 rounded hover:bg-[#2a2a2a] transition-colors font-mono text-xs"
+    >
+      Copy
+    </button>
+  </div>
+  <pre class="!my-0 !border-0 !rounded-none !bg-transparent p-4 overflow-x-auto text-[13px] leading-relaxed"><code set:html={highlighted} /></pre>
+  {output && (
+    <div class="border-t border-[#262626] bg-[#121212] px-4 py-2.5 text-xs font-mono">
+      <div class="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Output</div>
+      <pre class="!my-0 !p-0 !border-0 !bg-transparent text-neutral-300 whitespace-pre-wrap">{output.trim()}</pre>
+    </div>
+  )}
+</div>

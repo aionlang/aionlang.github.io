@@ -1,0 +1,215 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+export interface TocItem {
+  id: string;
+  label: string;
+  level?: number;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  category: string;
+  currentSlug: string;
+  toc?: TocItem[];
+  prevPage?: { slug: string; title: string };
+  nextPage?: { slug: string; title: string };
+}
+
+const { title, description, category, currentSlug, toc = [], prevPage, nextPage } = Astro.props;
+
+const sidebarGroups = [
+  {
+    group: 'Overview',
+    items: [
+      { slug: '', title: 'Documentation Index' },
+      { slug: 'getting-started', title: 'Getting Started & CLI' },
+    ],
+  },
+  {
+    group: 'Language Reference',
+    items: [
+      { slug: 'syntax', title: 'Syntax & Control Flow' },
+      { slug: 'functions', title: 'Functions & Closures' },
+      { slug: 'types', title: 'Types, Generics & Interfaces' },
+      { slug: 'errors-and-concurrency', title: 'Errors, Tasks & Threads' },
+    ],
+  },
+  {
+    group: 'Standard Library',
+    items: [
+      { slug: 'prelude-methods', title: 'Prelude & Built-in Methods' },
+      { slug: 'stdlib', title: 'Standard Library (std.*)' },
+    ],
+  },
+  {
+    group: 'Packages & Internals',
+    items: [
+      { slug: 'packages-and-ffi', title: 'Packages, C FFI & GC' },
+    ],
+  },
+];
+---
+
+<BaseLayout title={`${title} — Aion Documentation`} description={description} activeNav="docs">
+  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- Left Sidebar Navigation -->
+      <aside class="lg:col-span-3 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pr-2 space-y-5 bg-[#181818] lg:bg-transparent p-4 lg:p-0 rounded-lg border border-[#2c2c2c] lg:border-0">
+        <div>
+          <input
+            id="docs-search-input"
+            type="search"
+            placeholder="Filter methods on page..."
+            class="w-full bg-[#1a1a1a] border border-[#2e2e2e] focus:border-[#555555] rounded px-3 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none"
+          />
+        </div>
+
+        <nav class="space-y-5" aria-label="Documentation Sidebar">
+          {sidebarGroups.map((group) => (
+            <div>
+              <h3 class="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 mb-1.5 px-2">
+                {group.group}
+              </h3>
+              <ul class="space-y-0.5">
+                {group.items.map((item) => {
+                  const href = item.slug ? `/documentation/${item.slug}` : '/documentation';
+                  const isActive = currentSlug === item.slug;
+                  return (
+                    <li>
+                      <a
+                        href={href}
+                        class={`block px-2.5 py-1.5 rounded text-sm transition-colors ${
+                          isActive
+                            ? 'bg-[#242424] text-white font-medium border-l-2 border-[#4377df]'
+                            : 'text-neutral-400 hover:text-neutral-100 hover:bg-[#1b1b1b]'
+                        }`}
+                      >
+                        {item.title}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+
+        <!-- Direct Reference Links -->
+        <div class="pt-4 border-t border-[#262626] text-xs">
+          <div class="text-neutral-500 font-medium mb-2 px-2">Quick Jump</div>
+          <div class="flex flex-wrap gap-1.5 px-2">
+            <a href="/documentation/types#primitive-types" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">Types</a>
+            <a href="/documentation/syntax#operators" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">Operators</a>
+            <a href="/documentation/prelude-methods#string-methods" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">String</a>
+            <a href="/documentation/prelude-methods#list-methods" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">List</a>
+            <a href="/documentation/prelude-methods#map-methods" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">Map</a>
+            <a href="/documentation/prelude-methods#stream-methods" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">Stream</a>
+            <a href="/documentation/errors-and-concurrency#result-type" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">Result</a>
+            <a href="/documentation/stdlib" class="px-2 py-0.5 rounded bg-[#1e1e1e] border border-[#2e2e2e] hover:border-[#444] text-neutral-300 font-mono">std.*</a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Documentation Content -->
+      <article class="lg:col-span-7 min-w-0">
+        <div class="mb-6 pb-5 border-b border-[#2c2c2c]">
+          <div class="text-xs font-mono text-neutral-500 mb-1">
+            {category}
+          </div>
+          <h1 class="text-3xl font-bold text-white tracking-tight mb-2">
+            {title}
+          </h1>
+          <p class="text-base text-neutral-400 leading-relaxed">
+            {description}
+          </p>
+        </div>
+
+        <div class="docs-prose">
+          <slot />
+        </div>
+
+        {(prevPage || nextPage) && (
+          <div class="mt-12 pt-6 border-t border-[#2c2c2c] grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {prevPage ? (
+              <a
+                href={prevPage.slug ? `/documentation/${prevPage.slug}` : '/documentation'}
+                class="p-3.5 rounded-lg border border-[#2c2c2c] bg-[#181818] hover:border-[#444444] transition-colors"
+              >
+                <div class="text-xs text-neutral-500 mb-0.5">&larr; Previous</div>
+                <div class="text-sm font-medium text-neutral-200">
+                  {prevPage.title}
+                </div>
+              </a>
+            ) : <div />}
+            {nextPage && (
+              <a
+                href={nextPage.slug ? `/documentation/${nextPage.slug}` : '/documentation'}
+                class="p-3.5 rounded-lg border border-[#2c2c2c] bg-[#181818] hover:border-[#444444] transition-colors text-right"
+              >
+                <div class="text-xs text-neutral-500 mb-0.5">Next &rarr;</div>
+                <div class="text-sm font-medium text-neutral-200">
+                  {nextPage.title}
+                </div>
+              </a>
+            )}
+          </div>
+        )}
+      </article>
+
+      <!-- Right Sidebar: On This Page -->
+      <aside class="hidden lg:block lg:col-span-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto pl-2">
+        {toc.length > 0 && (
+          <div>
+            <h3 class="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 mb-2.5">
+              On This Page
+            </h3>
+            <ul class="space-y-1.5 text-xs border-l border-[#2a2a2a]">
+              {toc.map((item) => (
+                <li>
+                  <a
+                    href={`#${item.id}`}
+                    class={`block py-0.5 hover:text-white transition-colors ${
+                      item.level === 3 ? 'pl-5 text-neutral-500' : 'pl-3 text-neutral-400'
+                    }`}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </aside>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('astro:page-load', () => {
+      const searchInput = document.getElementById('docs-search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const q = e.target.value.trim().toLowerCase();
+          document.querySelectorAll('.method-row').forEach((row) => {
+            if (!q) {
+              row.style.display = '';
+              return;
+            }
+            const sig = row.getAttribute('data-method-sig') || '';
+            const desc = row.getAttribute('data-method-desc') || '';
+            row.style.display = sig.includes(q) || desc.includes(q) ? '' : 'none';
+          });
+          document.querySelectorAll('[data-filter-card]').forEach((card) => {
+            if (!q) {
+              card.style.display = '';
+              return;
+            }
+            const text = (card.innerText || '').toLowerCase();
+            card.style.display = text.includes(q) ? '' : 'none';
+          });
+        });
+      }
+    });
+  </script>
+</BaseLayout>

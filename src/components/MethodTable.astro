@@ -1,0 +1,52 @@
+---
+export interface MethodEntry {
+  sig: string;
+  returns?: string;
+  desc: string;
+  example?: string;
+}
+
+interface Props {
+  title?: string;
+  badge?: string;
+  methods: MethodEntry[];
+}
+
+const { title, badge, methods } = Astro.props;
+---
+
+<div class="my-5 rounded-lg border border-[#2c2c2c] bg-[#181818] overflow-hidden">
+  {title && (
+    <div class="px-4 py-2.5 bg-[#202020] border-b border-[#2c2c2c] flex items-center justify-between">
+      <h4 class="font-mono font-semibold text-sm text-neutral-100 !m-0">{title}</h4>
+      {badge && (
+        <span class="text-xs font-mono px-2 py-0.5 rounded bg-[#2a2a2a] text-neutral-300 border border-[#383838]">
+          {badge}
+        </span>
+      )}
+    </div>
+  )}
+  <div class="divide-y divide-[#262626]">
+    {methods.map((m) => (
+      <div class="p-3.5 hover:bg-[#1d1d1d] transition-colors method-row" data-method-sig={m.sig.toLowerCase()} data-method-desc={m.desc.toLowerCase()}>
+        <div class="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+          <code class="text-sm font-mono font-medium text-[#81a3e8] bg-[#222222] px-2 py-0.5 rounded border border-[#333333]">
+            {m.sig}
+          </code>
+          {m.returns && (
+            <span class="text-xs font-mono text-neutral-400">
+              &rarr; <code class="text-neutral-200 bg-[#222222] px-1.5 py-0.5 rounded border border-[#333333]">{m.returns}</code>
+            </span>
+          )}
+        </div>
+        <p class="text-sm text-neutral-300 !mb-0 leading-relaxed">{m.desc}</p>
+        {m.example && (
+          <div class="mt-2 pt-1.5 border-t border-[#262626] text-xs font-mono text-neutral-400 overflow-x-auto">
+            <span class="text-neutral-500 select-none mr-1.5">&gt;</span>
+            <span class="text-neutral-200">{m.example}</span>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+</div>

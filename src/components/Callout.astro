@@ -1,0 +1,24 @@
+---
+interface Props {
+  type?: 'note' | 'tip' | 'important' | 'warning';
+  title?: string;
+}
+
+const { type = 'note', title } = Astro.props;
+
+const defaultTitles = {
+  note: 'Note',
+  tip: 'Tip',
+  important: 'Important',
+  warning: 'Warning',
+};
+---
+
+<aside class="my-5 rounded-lg border border-[#2e2e2e] border-l-4 border-l-[#4377df] bg-[#1a1a1a] p-4 text-sm">
+  <div class="font-semibold mb-1 text-neutral-200 text-xs uppercase tracking-wider font-mono">
+    {title || defaultTitles[type]}
+  </div>
+  <div class="text-neutral-300 leading-relaxed space-y-2">
+    <slot />
+  </div>
+</aside>

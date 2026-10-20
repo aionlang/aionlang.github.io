@@ -1,0 +1,112 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+---
+
+<BaseLayout title="Downloads — Aion Language" activeNav="downloads">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+    <div class="mb-10">
+      <h1 class="text-3xl font-bold text-white mb-2">Download Aion</h1>
+      <p class="text-neutral-400 text-sm">
+        Prebuilt binaries for v0.3.0 (Beta), Docker container usage, and instructions for building from source.
+      </p>
+    </div>
+
+    <!-- Platform Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12">
+      <!-- Windows -->
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-6 flex flex-col justify-between">
+        <div class="text-center">
+          <img class="h-16 w-16 mx-auto mb-4 opacity-90" src="/assets/platforms/win.svg" alt="Windows" />
+          <h2 class="text-xl font-bold text-white">Windows</h2>
+          <p class="text-xs text-neutral-400 mt-1">64-bit Executable (x86_64)</p>
+          <p class="text-xs text-neutral-500 font-mono mt-1">Needs MinGW clang on PATH</p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-[#282828] text-center">
+          <a
+            href="/executables/win/aion.exe"
+            class="w-full inline-block bg-[#4377df] hover:bg-[#3664c2] text-white text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Download aion.exe
+          </a>
+          <p class="mt-2 text-xs font-mono text-neutral-500">v0.3.0 • 43 MB</p>
+        </div>
+      </div>
+
+      <!-- macOS -->
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-6 flex flex-col justify-between">
+        <div class="text-center">
+          <img class="h-16 w-16 mx-auto mb-4 opacity-90" src="/assets/platforms/apple.svg" alt="macOS" />
+          <h2 class="text-xl font-bold text-white">macOS</h2>
+          <p class="text-xs text-neutral-400 mt-1">Universal Executable</p>
+          <p class="text-xs text-neutral-500 font-mono mt-1">Needs Xcode Command Line Tools</p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-[#282828] text-center">
+          <a
+            href="/executables/mac/aion-mac"
+            class="w-full inline-block bg-[#4377df] hover:bg-[#3664c2] text-white text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Download aion-mac
+          </a>
+          <p class="mt-2 text-xs font-mono text-neutral-500">v0.3.0 • 55 MB</p>
+        </div>
+      </div>
+
+      <!-- Linux -->
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-6 flex flex-col justify-between">
+        <div class="text-center">
+          <img class="h-16 w-16 mx-auto mb-4 opacity-90" src="/assets/platforms/linux.svg" alt="Linux" />
+          <h2 class="text-xl font-bold text-white">Linux</h2>
+          <p class="text-xs text-neutral-400 mt-1">64-bit ELF Executable (x86_64)</p>
+          <p class="text-xs text-neutral-500 font-mono mt-1">Needs clang 15+ installed</p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-[#282828] text-center">
+          <a
+            href="/executables/linux/aion"
+            class="w-full inline-block bg-[#4377df] hover:bg-[#3664c2] text-white text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Download aion
+          </a>
+          <p class="mt-2 text-xs font-mono text-neutral-500">v0.3.0 • 51 MB</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Build from Source & Docker -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-5">
+        <h3 class="text-lg font-bold text-white mb-2">Build from Source</h3>
+        <p class="text-sm text-neutral-400 mb-4">
+          Requires Rust (stable, 2024 edition) and <code class="font-mono text-xs text-neutral-200">clang 15+</code>. No LLVM development libraries are needed.
+        </p>
+        <CodeBlock
+          lang="bash"
+          title="Terminal"
+          code={`cargo install --path .
+
+aion examples/tour.aion
+aion repl
+aion build examples/hello.aion`}
+        />
+      </div>
+
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-5">
+        <h3 class="text-lg font-bold text-white mb-2">Run with Docker</h3>
+        <p class="text-sm text-neutral-400 mb-4">
+          Includes Clang and all optional C libraries (<code class="font-mono text-xs text-neutral-200">sqlite3</code>, <code class="font-mono text-xs text-neutral-200">openssl</code>, <code class="font-mono text-xs text-neutral-200">gmp</code>, <code class="font-mono text-xs text-neutral-200">utf8proc</code>, <code class="font-mono text-xs text-neutral-200">libarchive</code>, <code class="font-mono text-xs text-neutral-200">expat</code>).
+        </p>
+        <CodeBlock
+          lang="bash"
+          title="Docker"
+          code={`docker build -t aion .
+
+# Linux / macOS:
+docker run --rm -v "$PWD":/work aion examples/hello.aion
+
+# PowerShell:
+docker run --rm -v "\${PWD}:/work" aion examples/hello.aion`}
+        />
+      </div>
+    </div>
+  </div>
+</BaseLayout>
