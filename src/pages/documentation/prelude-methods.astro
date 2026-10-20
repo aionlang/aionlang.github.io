@@ -1,0 +1,225 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+import MethodTable from '../../components/MethodTable.astro';
+
+const toc = [
+  { id: 'global-functions', label: 'Global Built-ins & I/O' },
+  { id: 'assertions', label: 'Assertions (aion test)' },
+  { id: 'string-methods', label: 'String & StringBuilder Methods' },
+  { id: 'number-and-char-methods', label: 'Int, Float, Int32, Byte & Char' },
+  { id: 'bytes-methods', label: 'Bytes & BytesBuilder' },
+  { id: 'list-methods', label: 'Array<T> & List<T> Methods' },
+  { id: 'map-methods', label: 'Map<K, V>, Entry & Set<T>' },
+  { id: 'range-methods', label: 'Range Methods' },
+  { id: 'stream-methods', label: 'Lazy Stream<T> API' },
+];
+
+const globalMethods = [
+  { sig: 'print(a, b, ...) / println(a, b, ...)', returns: 'Unit', desc: 'Writes any number of values separated by spaces to stdout (println appends a newline).' },
+  { sig: 'eprint(text: String) / eprintln(text: String = "")', returns: 'Unit', desc: 'Writes text to standard error (stderr).' },
+  { sig: 'readLine() -> String?', returns: 'String?', desc: 'Flushes pending stdout and reads the next line from stdin without its newline, or null on EOF.' },
+  { sig: 'readText() -> String', returns: 'String', desc: 'Reads all remaining standard input as a single String.' },
+  { sig: 'args() -> List<String>', returns: 'List<String>', desc: 'Returns command-line arguments passed after the script name.' },
+  { sig: 'panic(message: String) / error(message: String)', returns: 'Never', desc: 'Prints [aion] panic: <message> with stack trace and exits (or unwinds to try/catch). error() can be used inside expressions like x ?: error("missing").' },
+  { sig: 'require(cond: Bool, message = "requirement failed")', returns: 'Unit', desc: 'Panics with message unless cond is true (used to validate caller arguments).' },
+  { sig: 'check(cond: Bool, message = "check failed")', returns: 'Unit', desc: 'Panics with message unless cond is true (used to validate program state).' },
+  { sig: 'typeOf(value: Any?) -> String', returns: 'String', desc: 'Returns the runtime type name of value (e.g. "Int", "List<String>", "Point", or "null").' },
+  { sig: 'hashOf(value: Any) -> Int', returns: 'Int', desc: 'Returns a non-negative hash code (by content for primitives/Strings/Bytes/tuples/data types; by identity or .hashCode() for objects).' },
+  { sig: 'repeat(times: Int, action: (Int) -> Unit)', returns: 'Unit', desc: 'Executes action(0), action(1), ... action(times - 1).' },
+  { sig: 'abs<T>(x: T) -> T', returns: 'T', desc: 'Returns the magnitude of a number without its sign.' },
+  { sig: 'min<T: Comparable<T>>(a: T, b: T) / max<T: Comparable<T>>(a: T, b: T)', returns: 'T', desc: 'Returns the smaller or larger of two comparable values.' },
+  { sig: 'clamp<T: Comparable<T>>(x: T, low: T, high: T) -> T', returns: 'T', desc: 'Constrains x to lie within [low, high].' },
+  { sig: 'listOf<T>(vararg items: T) -> List<T> / emptyList<T>() -> List<T>', returns: 'List<T>', desc: 'Creates a List<T> from variadic arguments or an empty typed list.' },
+  { sig: 'emptyMap<K, V>() -> Map<K, V> / setOf<T>(items: List<T>) -> Set<T>', returns: 'Map / Set', desc: 'Creates an empty typed Map<K, V> or a Set<T> of distinct items from a list.' },
+  { sig: 'enumerate<T>(xs: List<T>) -> List<(Int, T)>', returns: 'List<(Int, T)>', desc: 'Returns a list of (index, element) pairs for destructuring loops.' },
+];
+
+const assertionMethods = [
+  { sig: 'assert(condition: Bool, message = "assertion failed")', returns: 'Unit', desc: 'Panics unless condition is true.' },
+  { sig: 'assertEq<T>(actual: T, expected: T, message = "")', returns: 'Unit', desc: 'Panics unless actual == expected, reporting both values.' },
+  { sig: 'assertNe<T>(actual: T, unexpected: T, message = "")', returns: 'Unit', desc: 'Panics if actual == unexpected.' },
+  { sig: 'assertFalse(condition: Bool, message = "expected false")', returns: 'Unit', desc: 'Panics if condition is true.' },
+  { sig: 'assertNull<T>(value: T?, message = "") / assertNotNull<T>(value: T?, message = "")', returns: 'Unit', desc: 'Asserts that an optional value is null or non-null.' },
+  { sig: 'assertClose(actual: Float, expected: Float, tolerance = 1e-9)', returns: 'Unit', desc: 'Asserts that |actual - expected| <= tolerance.' },
+  { sig: 'assertContains<T>(items: List<T>, item: T)', returns: 'Unit', desc: 'Asserts that items contains item.' },
+  { sig: 'assertContainsText(text: String, part: String)', returns: 'Unit', desc: 'Asserts that text contains substring part.' },
+  { sig: 'assertFails(body: () -> Unit) -> String', returns: 'String', desc: 'Runs body(), which must panic, and returns the panic message.' },
+];
+
+const stringMethods = [
+  { sig: 'String.length() / String.size()', returns: 'Int', desc: 'Length of the string in UTF-8 bytes.', example: '"héllo".length() // 6' },
+  { sig: 'String.charCount()', returns: 'Int', desc: 'Number of Unicode code points (characters) in the string.', example: '"héllo".charCount() // 5' },
+  { sig: 'String.isEmpty() / String.isNotEmpty()', returns: 'Bool', desc: 'True if length() == 0 (or > 0).' },
+  { sig: 'String.isBlank() / String.isNotBlank()', returns: 'Bool', desc: 'True if the string is empty or contains only whitespace.' },
+  { sig: 'String.charAt(byteIndex: Int) / s[byteIndex]', returns: 'Char', desc: 'Returns the Unicode Char starting at byte offset byteIndex.' },
+  { sig: 'String.chars() / String.toList()', returns: 'List<Char>', desc: 'Returns all Unicode characters as a List<Char>.' },
+  { sig: 'String.first() / String.last()', returns: 'Char', desc: 'First or last Unicode character (panics if empty).' },
+  { sig: 'String.contains(needle: String)', returns: 'Bool', desc: 'True if needle occurs anywhere in the string.' },
+  { sig: 'String.startsWith(prefix: String) / String.endsWith(suffix: String)', returns: 'Bool', desc: 'Checks prefix or suffix match.' },
+  { sig: 'String.indexOf(needle: String, from: Int = 0) / String.lastIndexOf(needle: String)', returns: 'Int', desc: 'Byte offset of first (from offset) or last match, or -1 if absent.' },
+  { sig: 'String.substring(start: Int, end: Int) / s[start..end]', returns: 'String', desc: 'Returns substring for byte range [start, end).' },
+  { sig: 'String.trim() / String.trimStart() / String.trimEnd()', returns: 'String', desc: 'Strips leading and/or trailing whitespace.' },
+  { sig: 'String.trimIndent()', returns: 'String', desc: 'Removes common leading indentation across all lines and trims blank first/last lines.' },
+  { sig: 'String.upper() / String.lower() / String.capitalize()', returns: 'String', desc: 'Converts case (upper/lower/first-character capitalized).' },
+  { sig: 'String.replace(from: String, to: String)', returns: 'String', desc: 'Replaces all occurrences of from with to.' },
+  { sig: 'String.removePrefix(prefix: String) / String.removeSuffix(suffix: String)', returns: 'String', desc: 'Removes prefix or suffix if present; otherwise returns the string unchanged.' },
+  { sig: 'String.split(separator: String)', returns: 'List<String>', desc: 'Splits string around separator into a List<String>.' },
+  { sig: 'String.lines()', returns: 'List<String>', desc: 'Splits string into lines (handling \\n and \\r\\n).' },
+  { sig: 'String.words()', returns: 'List<String>', desc: 'Splits string on any run of whitespace and drops empty tokens.' },
+  { sig: 'String.repeat(n: Int) / s * n', returns: 'String', desc: 'Repeats the string n times.' },
+  { sig: 'String.reversed()', returns: 'String', desc: 'Returns the string with its Unicode characters in reverse order.' },
+  { sig: 'String.padLeft(w: Int, fill = " ") / String.padRight(w: Int, fill = " ")', returns: 'String', desc: 'Pads string to width w characters (also aliased as padStart / padEnd).' },
+  { sig: 'String.take(n: Int) / String.drop(n: Int) / String.takeLast(n: Int) / String.dropLast(n: Int)', returns: 'String', desc: 'Takes or drops the first or last n Unicode characters.' },
+  { sig: 'String.filter(keep: (Char) -> Bool) / String.count(test) / String.any(test) / String.all(test)', returns: 'String / Int / Bool', desc: 'Character-level functional operations on a String.' },
+  { sig: 'String.format(vararg args: Any)', returns: 'String', desc: 'Printf-style formatting supporting %d, %f, %s, %c, %x, %b, %o, width, .precision, -, 0, + flags.', example: '"%d items cost $%.2f".format(3, 4.5) // "3 items cost $4.50"' },
+  { sig: 'String.isInt() / String.toInt() / String.toIntOr(fallback: Int) / String.toIntOrNull()', returns: 'Bool / Int / Int?', desc: 'Parses string as a 64-bit signed integer.' },
+  { sig: 'String.parseInt(radix: Int) -> Int?', returns: 'Int?', desc: 'Parses integer in base 2..36 (e.g. "ff".parseInt(16) == 255).' },
+  { sig: 'String.isFloat() / String.toFloat() / String.toFloatOr(fallback: Float) / String.toFloatOrNull()', returns: 'Bool / Float / Float?', desc: 'Parses string as a 64-bit Float.' },
+  { sig: 'String.toBool() / String.toInt32OrNull() / String.toByteOrNull()', returns: 'Bool / Int32? / Byte?', desc: 'Parses Bool ("true"/"false"), Int32, or Byte.' },
+  { sig: 'String.toBytes() -> Bytes / String.fromHex() -> Bytes?', returns: 'Bytes / Bytes?', desc: 'Converts UTF-8 string to Bytes, or decodes hexadecimal string into Bytes?.' },
+  { sig: 'StringBuilder() -> .append(s), .appendChar(c), .appendLine(s=""), .length(), .isEmpty(), .clear(), .truncate(n), .toString()', returns: 'StringBuilder', desc: 'Mutable O(1) amortized UTF-8 string builder for loops.' },
+];
+
+const numCharMethods = [
+  { sig: 'Int.toFloat() / Int.toInt32() / Int.toByte() / Int.toChar() / Int.toString()', returns: 'Float / Int32 / Byte / Char / String', desc: 'Converts Int to other primitive types.' },
+  { sig: 'Int.abs() / Int.sign() / Int.min(o) / Int.max(o) / Int.clamp(lo, hi)', returns: 'Int', desc: 'Standard numeric helpers (also available on Float, plus coerceAtLeast / coerceAtMost / coerceIn).' },
+  { sig: 'Int.isEven() / Int.isOdd()', returns: 'Bool', desc: 'Parity checks on Int.' },
+  { sig: 'Int.pow(exponent: Int) / Int.gcd(other: Int)', returns: 'Int', desc: 'Integer exponentiation (exponent >= 0) and greatest common divisor.' },
+  { sig: 'Int.toRadix(base: Int) / Int.toHex() / Int.toBinary()', returns: 'String', desc: 'Formats integer in base 2..36, hex (base 16), or binary (base 2).' },
+  { sig: 'Int.and(b) / .or(b) / .xor(b) / .inv() / .shl(n) / .shr(n) / .ushr(n)', returns: 'Int', desc: 'Bitwise operations (also supported on Int32 and Byte).' },
+  { sig: 'Int.downTo(end: Int) -> Range', returns: 'Range', desc: 'Creates a descending Range from this down to end inclusive.' },
+  { sig: 'Float.toInt() / Float.round() / Float.floor() / Float.ceil()', returns: 'Int', desc: 'Truncates towards zero, rounds to nearest integer, floors, or ceils to Int.' },
+  { sig: 'Float.format(decimals: Int) -> String / Float.roundTo(decimals: Int) -> Float', returns: 'String / Float', desc: 'Formats to fixed decimal places or rounds to a Float.' },
+  { sig: 'Float.isNaN() / Float.isInfinite()', returns: 'Bool', desc: 'Tests for IEEE-754 NaN or infinity.' },
+  { sig: 'Char.isDigit() / .isLetter() / .isLetterOrDigit() / .isUpper() / .isLower() / .isWhitespace()', returns: 'Bool', desc: 'Unicode character classification.' },
+  { sig: 'Char.upper() / Char.lower() / Char.toString() / Char.times(n: Int)', returns: 'Char / String', desc: 'Case conversion, string conversion, and repetition (c * n).' },
+  { sig: 'Char.code() -> Int / Char.digitValue() -> Int? / Char.byteLength() -> Int', returns: 'Int / Int?', desc: 'Unicode code point, numeric digit value (0..9 or null), and UTF-8 byte length.' },
+];
+
+const bytesMethods = [
+  { sig: 'Bytes(size: Int, fill: Int = 0) / bytesOf(values: List<Int>) -> Bytes', returns: 'Bytes', desc: 'Allocates a byte buffer of length size filled with fill (0..255), or from a List<Int>.' },
+  { sig: 'Bytes.size() / Bytes.get(i) / Bytes.set(i, v) / b[i] / b[i] = v', returns: 'Int / Unit', desc: 'Reads or writes a byte (0..255) at index i.' },
+  { sig: 'Bytes.slice(from: Int, to: Int) / b[from..to] / Bytes.concat(other) / b + other', returns: 'Bytes', desc: 'Slices or concatenates byte buffers (returns a new Bytes).' },
+  { sig: 'Bytes.indexOf(byte: Int, from = 0) / Bytes.contains(byte: Int)', returns: 'Int / Bool', desc: 'Finds a single byte value (0..255).' },
+  { sig: 'Bytes.find(needle: Bytes, from = 0) / Bytes.startsWith(prefix: Bytes)', returns: 'Int / Bool', desc: 'Searches for a sub-sequence of bytes or checks prefix.' },
+  { sig: 'Bytes.copyFrom(at: Int, src: Bytes, from: Int, count: Int) / Bytes.putText(at: Int, s: String)', returns: 'Unit', desc: 'In-place bulk byte copy or UTF-8 string write.' },
+  { sig: 'Bytes.toHex() -> String / Bytes.toText() -> String / Bytes.toList() -> List<Int>', returns: 'String / List<Int>', desc: 'Encodes to lowercase hex, decodes UTF-8 text, or converts to a List<Int>.' },
+  { sig: 'BytesBuilder() -> .add(b), .addText(s), .addByte(n), .size(), .isEmpty(), .find(b), .take(n), .dropFirst(n), .clear(), .toBytes()', returns: 'BytesBuilder', desc: 'Growable binary buffer builder for streaming protocols and parsers.' },
+];
+
+const listMethods = [
+  { sig: 'Array(size: Int, fill: T) / Array<T>(size: Int)', returns: 'Array<T>', desc: 'Fixed-size array with .size(), .get(i), .set(i, v), .clear(i).' },
+  { sig: 'List.size() / .isEmpty() / .isNotEmpty() / .indices() / .lastIndex()', returns: 'Int / Bool / Range', desc: 'Element count, emptiness checks, 0..size() range, and size() - 1.' },
+  { sig: 'List.get(i) / .set(i, v) / .getOrNull(i) / .getOrElse(i) { ... }', returns: 'T / Unit / T?', desc: 'Indexed access (checked or null/fallback-safe).' },
+  { sig: 'List.first() / .last() / .firstOrNull() / .lastOrNull()', returns: 'T / T?', desc: 'First or last element.' },
+  { sig: 'List.add(v) / .addAll(other) / .insert(index, v) / xs + ys', returns: 'Unit / List<T>', desc: 'Appends, inserts, or concatenates lists.' },
+  { sig: 'List.removeAt(i) / .pop() / .remove(v) / .removeIf(pred) / .removeAll(other) / .clear()', returns: 'T / Bool / Unit', desc: 'Removes elements by index, from the end, by value, or by predicate.' },
+  { sig: 'List.contains(v) / .indexOf(v) / .indexOfFirst(pred) / .indexOfLast(pred) / .find(pred)', returns: 'Bool / Int / T?', desc: 'Searches for elements by equality or predicate.' },
+  { sig: 'List.slice(from, to) / xs[a..b] / .take(n) / .drop(n) / .takeLast(n) / .dropLast(n)', returns: 'List<T>', desc: 'Sub-list extraction.' },
+  { sig: 'List.takeWhile(pred) / .dropWhile(pred) / .chunked(size) / .windowed(size, step = 1)', returns: 'List<T> / List<List<T>>', desc: 'Prefix/suffix slicing by condition, fixed chunks, and sliding windows.' },
+  { sig: 'List.copy() / .reversed() / .reverse() / .swap(i, j) / .distinct() / .distinctBy(key)', returns: 'List<T> / Unit', desc: 'Copying, reversing (new or in-place), swapping, and deduplication.' },
+  { sig: 'List.map(f) / .mapIndexed(f) / .mapNotNull(f) / .flatMap(f) / .flatten() / .filter(pred) / .filterNot(pred) / .filterNotNull()', returns: 'List<R>', desc: 'Functional transformations and filtering.' },
+  { sig: 'List.forEach(f) / .forEachIndexed(f) / .withIndex() / .zip(other) / .unzip()', returns: 'Unit / List', desc: 'Iteration and tuple pairing/unpairing.' },
+  { sig: 'List.fold(init, f) / .reduce(f) / .reduceOrNull(f) / .sum() / .sumOf(f) / .average()', returns: 'R / T / Float?', desc: 'Reductions and numeric aggregations.' },
+  { sig: 'List.any(pred) / .all(pred) / .none(pred) / .count(pred)', returns: 'Bool / Int', desc: 'Quantifiers and predicate counting.' },
+  { sig: 'List.sorted() / .sortedDescending() / .sortedBy(key) / .sortedByDescending(key) / .sortedWith(cmp)', returns: 'List<T>', desc: 'Returns a new sorted list using natural Timsort-style merge sort (O(n log n)).' },
+  { sig: 'List.sort() / .sortDescending() / .sortBy(key) / .sortWith(cmp)', returns: 'Unit', desc: 'Sorts the list in place.' },
+  { sig: 'List.min() / .max() / .minOrNull() / .maxOrNull() / .minBy(key) / .maxBy(key) / .minOf(f) / .maxOf(f)', returns: 'T? / R?', desc: 'Finds extreme elements or key values.' },
+  { sig: 'List.groupBy(key) / .groupCounting(key) / .partition(pred) / .associateBy(key) / .toMap(k, v) / .toSet()', returns: 'Map / (List, List) / Set', desc: 'Grouping, partitioning, and collection conversion.' },
+  { sig: 'List.join(sep = ", ") / .joinToString(sep, prefix, suffix) / .contentEquals(other) / .stream()', returns: 'String / Bool / Stream<T>', desc: 'String joining, structural list comparison, and lazy stream creation.' },
+];
+
+const mapSetMethods = [
+  { sig: 'Map.size() / .isEmpty() / .isNotEmpty() / .containsKey(k) / .contains(k)', returns: 'Int / Bool', desc: 'Map size and key membership checks (k in map).' },
+  { sig: 'Map.get(k) / m[k] / .getOrNull(k) / .getOr(k, fallback) / .getOrPut(k) { ... }', returns: 'V / V?', desc: 'Retrieves value by key (panics if missing in get, or returns null/fallback/computed value).' },
+  { sig: 'Map.set(k, v) / m[k] = v / .putAll(other) / .merge(k, v, combine)', returns: 'Unit', desc: 'Inserts or updates entries in insertion order.' },
+  { sig: 'Map.remove(k) -> Bool / .clear()', returns: 'Bool / Unit', desc: 'Removes a key (returning true if present) or clears the map.' },
+  { sig: 'Map.keys() -> List<K> / .values() -> List<V> / .entries() -> List<Entry<K, V>>', returns: 'List', desc: 'Lists keys, values, or Entry(key, value) pairs in insertion order.' },
+  { sig: 'Map.forEach { k, v -> ... } / .mapValues(f) / .filter { k, v -> ... } / .any / .all / .count / .stream()', returns: 'Map / Bool / Int / Stream', desc: 'Functional operations over map entries.' },
+  { sig: 'Set.size() / .isEmpty() / .isNotEmpty() / .contains(v) / .add(v) -> Bool / .remove(v) -> Bool / .clear()', returns: 'Int / Bool / Unit', desc: 'Basic Set<T> operations maintaining insertion order.' },
+  { sig: 'Set.addAll(list) / .removeAll(list) / .union(other) / .intersect(other) / .subtract(other) / .isSubsetOf(other) / .filter(pred) / .toList() / .stream()', returns: 'Set<T> / Bool / List<T>', desc: 'Set algebra (union, intersection, difference, subset) and conversions.' },
+];
+
+const rangeMethods = [
+  { sig: 'Range(start: Int, end: Int, stride: Int = 1)', returns: 'Range', desc: 'Constructed via a..b, a..=b, a..b step k, or a downTo b.' },
+  { sig: 'Range.size() / .isEmpty() / .get(i) / .first() / .last() / .contains(x)', returns: 'Int / Bool', desc: 'O(1) arithmetic queries on the range.' },
+  { sig: 'Range.step(n: Int) / .reversed() / .toList() / .sum() / .stream()', returns: 'Range / List<Int> / Int / Stream<Int>', desc: 'Changes step stride, reverses, materializes to List<Int>, or sums.' },
+  { sig: 'Range.forEach / .map / .filter / .fold / .any / .all / .count / .join', returns: 'List / Bool / Int / String', desc: 'Functional helpers over range numbers.' },
+];
+
+const streamMethods = [
+  { sig: 'list.stream() / set.stream() / map.stream() / range.stream() / streamOf(vararg items) / emptyStream<T>()', returns: 'Stream<T>', desc: 'Creates a finite lazy Stream<T> from a collection, range, or arguments.' },
+  { sig: 'iterate(seed: T, next: (T) -> T) / iterateWhile(seed, hasNext, next) / generate(supplier: () -> T)', returns: 'Stream<T>', desc: 'Creates an infinite (or conditional) lazy stream; cap with .limit(n).' },
+  { sig: 'streamRange(from: Int, to: Int) / streamRangeClosed(from: Int, to: Int) / streamRepeat(value: T, times: Int)', returns: 'Stream', desc: 'Lazy numeric range streams and repeated value streams.' },
+  { sig: 'Stream.filter(keep) / .filterNot(drop) / .map(f) / .mapIndexed(f) / .mapNotNull(f)', returns: 'Stream', desc: 'Lazy intermediate filtering and mapping steps.' },
+  { sig: 'Stream.flatMap(f: (T) -> Stream<R>) / .flatMapList(f: (T) -> List<R>)', returns: 'Stream<R>', desc: 'Flattens nested streams or lists lazily.' },
+  { sig: 'Stream.distinct() / .distinctBy(key) / .peek(consumer)', returns: 'Stream<T>', desc: 'Deduplicates elements seen so far or observes elements as they pass through.' },
+  { sig: 'Stream.limit(n) / .skip(n) / .takeWhile(keep) / .dropWhile(drop)', returns: 'Stream<T>', desc: 'Short-circuiting slice operations on streams.' },
+  { sig: 'Stream.concat(other) / .zip(other) / .withIndex() / .chunked(size) / .windowed(size, step = 1)', returns: 'Stream', desc: 'Combines streams, pairs with indices, or groups into chunks/sliding windows.' },
+  { sig: 'Stream.sorted() / .sortedDescending() / .sortedBy(key) / .sortedWith(cmp) / .reversed()', returns: 'Stream<T>', desc: 'Stateful intermediate operations that order or reverse stream elements.' },
+  { sig: 'Stream.toList() / .toSet() / .toArray() / .toMap(k, v) / .toMapMerging(k, v, merge)', returns: 'List / Set / Array / Map', desc: 'Terminal collectors that materialize the stream into a container.' },
+  { sig: 'Stream.groupBy(key) -> Map<K, List<T>> / .groupCounting(key) -> Map<K, Int> / .partition(pred) -> (List<T>, List<T>)', returns: 'Map / Tuple', desc: 'Terminal grouping and partitioning collectors.' },
+  { sig: 'Stream.joining(sep = ", ", prefix = "", suffix = "") -> String', returns: 'String', desc: 'Terminal collector that formats elements into a single string.' },
+  { sig: 'Stream.count() / .sum() / .sumOf(f) / .average() / .averageOf(f) / .summaryStatistics() -> Stats', returns: 'Int / T / Float? / Stats', desc: 'Numeric terminal reductions. Stats is a data type(count, sum, min, max, average).' },
+  { sig: 'Stream.min() / .max() / .minBy(k) / .maxBy(k) / .minWith(cmp) / .maxWith(cmp) / .reduce(op) / .fold(init, op)', returns: 'T? / R', desc: 'Terminal reductions and extrema finders.' },
+  { sig: 'Stream.anyMatch(pred) / .allMatch(pred) / .noneMatch(pred) / .findFirst() / .find(pred) / .contains(v) / .last()', returns: 'Bool / T?', desc: 'Short-circuiting terminal predicates and search operations.' },
+];
+---
+
+<DocsLayout
+  title="Prelude & Built-in Methods"
+  description="Complete API reference for all built-in functions, assertions, String, StringBuilder, numeric types, Char, Bytes, Array, List, Map, Set, Range, and lazy Stream<T> methods."
+  category="Standard Library & API"
+  currentSlug="prelude-methods"
+  toc={toc}
+  prevPage={{ slug: 'errors-and-concurrency', title: 'Errors, Tasks, Channels & Threads' }}
+  nextPage={{ slug: 'stdlib', title: 'Standard Library Modules (std.*)' }}
+>
+  <Callout type="tip" title="Always in Scope">
+    Everything on this page lives in <code>stdlib/prelude.aion</code> and is available in every Aion file without an <code>import</code>. Type in the left sidebar search box (<code>Ctrl+K</code>) to filter all method rows below instantly!
+  </Callout>
+
+  <h2 id="global-functions">Global Built-in Functions &amp; I/O</h2>
+  <MethodTable title="Global Functions & Standard I/O" badge="Always in Scope" methods={globalMethods} />
+
+  <h2 id="assertions">Assertions (<code>aion test</code>)</h2>
+  <MethodTable title="Built-in Test Assertions" badge="Prelude" methods={assertionMethods} />
+
+  <h2 id="string-methods"><code>String</code> &amp; <code>StringBuilder</code> Methods</h2>
+  <MethodTable title="String & StringBuilder API" badge="45+ Methods" methods={stringMethods} />
+
+  <h2 id="number-and-char-methods">Numeric (<code>Int</code>, <code>Float</code>, <code>Int32</code>, <code>Byte</code>) &amp; <code>Char</code> Methods</h2>
+  <MethodTable title="Numbers & Char API" badge="Built-in Types" methods={numCharMethods} />
+
+  <h2 id="bytes-methods"><code>Bytes</code> &amp; <code>BytesBuilder</code> Methods</h2>
+  <MethodTable title="Binary Data API" badge="Bytes" methods={bytesMethods} />
+
+  <h2 id="list-methods"><code>Array&lt;T&gt;</code> &amp; <code>List&lt;T&gt;</code> Methods</h2>
+  <MethodTable title="Array<T> & List<T> API" badge="55+ Methods" methods={listMethods} />
+
+  <h2 id="map-methods"><code>Map&lt;K, V&gt;</code>, <code>Entry&lt;K, V&gt;</code> &amp; <code>Set&lt;T&gt;</code> Methods</h2>
+  <MethodTable title="Map<K, V> & Set<T> API" badge="Insertion-Ordered" methods={mapSetMethods} />
+
+  <h2 id="range-methods"><code>Range</code> Methods</h2>
+  <MethodTable title="Range API" badge="1..=10 step 2" methods={rangeMethods} />
+
+  <h2 id="stream-methods">Lazy <code>Stream&lt;T&gt;</code> Pipeline API</h2>
+  <p>
+    A <code>Stream&lt;T&gt;</code> evaluates elements lazily one at a time through intermediate steps when a terminal operation is invoked, enabling short-circuiting and infinite sequences (<code>iterate</code>, <code>generate</code>):
+  </p>
+
+  <CodeBlock
+    title="streams_demo.aion"
+    code={`println(iterate(1) { it * 3 }.limit(6).toList())
+println(streamRange(1, 6).map { it * it }.filter { it % 2 == 1 }.sum())
+stats := [10, 20, 30, 40].stream().summaryStatistics()
+println(stats)`}
+    output={`[1, 3, 9, 27, 81, 243]
+35
+Stats(count=4, sum=100, min=10, max=40, average=25)`}
+  />
+
+  <MethodTable title="Stream<T> Constructors, Intermediate & Terminal Operations" badge="45+ Methods" methods={streamMethods} />
+</DocsLayout>

@@ -1,0 +1,302 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const toc = [
+  { id: 'documentation-sections', label: 'Documentation Sections' },
+  { id: 'language-at-a-glance', label: 'Language at a Glance' },
+  { id: 'built-in-types-summary', label: 'Built-in Types Summary' },
+  { id: 'stdlib-modules-index', label: 'Standard Library Index' },
+];
+
+const sections = [
+  {
+    slug: 'getting-started',
+    badge: 'Guide',
+    title: 'Getting Started, CLI & REPL',
+    desc: 'Install Aion, run single-file scripts, use the interactive REPL, manage projects with aion.project, and use the build cache.',
+    highlights: ['aion run / build', 'aion repl', 'aion.project', '// dep: headers'],
+  },
+  {
+    slug: 'syntax',
+    badge: 'Syntax',
+    title: 'Syntax, Operators & Control Flow',
+    desc: 'Top-level scripts, := and val variables, operator precedence table, if/when expressions, loops, ranges (1..=10 step 2), strings, and characters.',
+    highlights: [':= and val', 'when matching', '1..=10 step 2', '"$name" & raw r""'],
+  },
+  {
+    slug: 'functions',
+    badge: 'Functions',
+    title: 'Functions, Lambdas & Closures',
+    desc: 'Function definitions, default and named parameters, vararg and list spread (*xs), nested functions, closures, overloading, and extension methods.',
+    highlights: ['fn f(x: Int) = x * 2', 'vararg & *xs', 'Closures { it + 1 }', 'fn String.shout()'],
+  },
+  {
+    slug: 'types',
+    badge: 'Types',
+    title: 'Types, Generics, Interfaces & Inheritance',
+    desc: 'Primitive types, sized integers (Int32, Byte), custom type & data type, enum, synonym, tuples, nullability (T?), Any, monomorphized generics, structural interfaces, and open type inheritance.',
+    highlights: ['type & data type', 'enum & synonym', 'T? smart casts', 'interface & open type'],
+  },
+  {
+    slug: 'errors-and-concurrency',
+    badge: 'Concurrency',
+    title: 'Errors, Tasks, Channels & OS Threads',
+    desc: 'Block-scoped defer, try/catch expressions, Result<T, E> with ? propagation, cooperative launch/async tasks, Channel<T> with select, and OS threads.',
+    highlights: ['Result<T, E> & r?', 'defer & try/catch', 'launch / async / select', 'thread & Mutex'],
+  },
+  {
+    slug: 'prelude-methods',
+    badge: 'Prelude',
+    title: 'Prelude & Built-in Methods Reference',
+    desc: 'Method signatures and examples for String, StringBuilder, Int, Float, Char, Bytes, Array<T>, List<T>, Map<K, V>, Set<T>, Range, and lazy Stream<T>.',
+    highlights: ['String methods', 'List<T> methods', 'Stream<T> ops', 'Assertions & I/O'],
+  },
+  {
+    slug: 'stdlib',
+    badge: 'Stdlib',
+    title: 'Standard Library Modules (std.*)',
+    desc: 'API reference for all bundled modules: fs, path, os, time, math, bigint, random, unicode, regex, json, csv, xml, crypto, http, http2, websocket, sqlite, reflect, and more.',
+    highlights: ['http / http2 / ws', 'json / xml / csv / regex', 'sqlite / fs / archive', 'crypto / hash / bigint'],
+  },
+  {
+    slug: 'packages-and-ffi',
+    badge: 'Internals',
+    title: 'Packages, C Interop (extern fn) & Architecture',
+    desc: 'Module resolution, publishing git packages, single-line extern fn C bindings, runtime/aion.h C API, compiler stages, and the mark-sweep garbage collector.',
+    highlights: ['extern fn C FFI', 'runtime/aion.h', 'Git packages', 'LLVM IR & GC'],
+  },
+];
+
+const stdlibQuickList = [
+  { name: 'std.fs', desc: 'Files, directories, temp dirs, metadata' },
+  { name: 'std.path', desc: 'Path join, basename, dirname, normalize' },
+  { name: 'std.os', desc: 'Env vars, platform info, exec & shell' },
+  { name: 'std.time', desc: 'Clocks, DateTime, strftime, durations' },
+  { name: 'std.math', desc: 'Trig, logs, roots, constants (pi, tau, e)' },
+  { name: 'std.bigint', desc: 'Arbitrary-precision BigInt & Rational (GMP)' },
+  { name: 'std.random', desc: 'PRNG, sampling, shuffling, OS CSPRNG tokens' },
+  { name: 'std.unicode', desc: 'NFC/NFD normalization, casefold, graphemes' },
+  { name: 'std.regex', desc: 'Linear-time regex engine, named groups' },
+  { name: 'std.json', desc: 'JSON parser, builder, pretty/compact output' },
+  { name: 'std.csv', desc: 'RFC 4180 CSV parser, records, formatter' },
+  { name: 'std.xml', desc: 'XML & HTML parser with CSS selectors' },
+  { name: 'std.encoding', desc: 'Base64, Base64URL, URL encoding, UUID v4' },
+  { name: 'std.hash', desc: 'SHA-256, SHA-512, HMAC, MD5, CRC32' },
+  { name: 'std.crypto', desc: 'AES-GCM, ChaCha20, PBKDF2, Ed25519' },
+  { name: 'std.zlib', desc: 'Gzip, Zlib & raw Deflate with bomb guard' },
+  { name: 'std.archive', desc: 'Zip, Tar, 7z, Rar reader/writer (libarchive)' },
+  { name: 'std.net', desc: 'Non-blocking TCP, TLS (ALPN), DNS lookup' },
+  { name: 'std.http', desc: 'HTTP/1.1 client (TLS, redirects) & server' },
+  { name: 'std.http2', desc: 'Multiplexed HTTP/2 client (RFC 9113)' },
+  { name: 'std.hpack', desc: 'HTTP/2 HPACK header compression (RFC 7541)' },
+  { name: 'std.websocket', desc: 'WebSocket client & server (ws://, wss://)' },
+  { name: 'std.smtp', desc: 'SMTP email client with STARTTLS & AUTH' },
+  { name: 'std.sqlite', desc: 'SQLite3 database, prepared queries, transactions' },
+  { name: 'std.reflect', desc: 'Runtime type inspection, field/method invocation' },
+  { name: 'std.cli', desc: 'Command-line flag, option & positional parser' },
+  { name: 'std.term', desc: 'ANSI colors, RGB, cursor control, raw key input' },
+  { name: 'std.log', desc: 'Structured logger with levels & custom format' },
+  { name: 'std.test', desc: 'Test runner with summary reporting' },
+  { name: 'std.gc', desc: 'Garbage collector control & heap statistics' },
+];
+---
+
+<DocsLayout
+  title="Aion Documentation"
+  description="Language reference, type definitions, prelude methods, and standard library documentation for Aion v0.3.0."
+  category="Overview"
+  currentSlug=""
+  toc={toc}
+  nextPage={{ slug: 'getting-started', title: 'Getting Started & CLI' }}
+>
+  <h2 id="documentation-sections">Documentation Sections</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-5">
+    {sections.map((s) => (
+      <a
+        href={`/documentation/${s.slug}`}
+        data-filter-card
+        class="p-4 rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] hover:border-[#484848] transition-colors flex flex-col justify-between"
+      >
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <h3 class="!mt-0 !mb-0 text-base font-bold text-white">
+              {s.title}
+            </h3>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-[#262626] text-neutral-300 border border-[#363636] shrink-0">
+              {s.badge}
+            </span>
+          </div>
+          <p class="text-xs text-neutral-400 leading-relaxed !mb-3">{s.desc}</p>
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-2 border-t border-[#262626]">
+          {s.highlights.map((h) => (
+            <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-[#222222] text-neutral-300">
+              {h}
+            </span>
+          ))}
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <h2 id="language-at-a-glance">Language at a Glance</h2>
+  <p>
+    Aion files execute top-to-bottom like a scripting language while compiling to native executables through LLVM IR and <code>clang -O2</code>:
+  </p>
+
+  <CodeBlock
+    title="overview.aion"
+    code={`interface Measurable {
+    fn score() -> Float
+    fn label() -> String = "score=\${score().format(1)}"
+}
+
+data type Metric(name: String, weight: Float, raw: Int) {
+    fn score() = weight * raw
+}
+
+fn bestOf<T: Measurable>(items: List<T>) -> T? =
+    items.stream().maxBy { it.score() }
+
+metrics := [Metric("latency", 0.5, 40), Metric("throughput", 1.2, 50)]
+winner := bestOf(metrics)!!
+println("\${winner.name}: \${winner.label()}")
+
+fn parsePort(s: String) -> Result<Int, String> {
+    p := s.toIntOrNull() ?: return Err("invalid port: $s")
+    return if p in 1..=65535 { Ok(p) } else { Err("out of range: $p") }
+}
+println(parsePort("8080"), parsePort("abc"))`}
+    output={`throughput: score=60.0
+Ok(8080) Err(invalid port: abc)`}
+  />
+
+  <h2 id="built-in-types-summary">Built-in Types Summary</h2>
+  <p>
+    See <a href="/documentation/types" class="text-[#81a3e8] hover:underline">Types, Generics &amp; Interfaces</a> for full definitions, casting rules, and memory representations.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description &amp; Representation</th>
+        <th>Default</th>
+        <th>Example</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Int</code></td>
+        <td>64-bit signed integer (wraps on overflow)</td>
+        <td><code>0</code></td>
+        <td><code>42</code>, <code>0xFF</code>, <code>1_000_000</code></td>
+      </tr>
+      <tr>
+        <td><code>Int32</code></td>
+        <td>32-bit signed integer (-2147483648..2147483647, wraps)</td>
+        <td><code>0</code></td>
+        <td><code>c: Int32 = 100</code>, <code>n as Int32</code></td>
+      </tr>
+      <tr>
+        <td><code>Byte</code></td>
+        <td>8-bit unsigned integer (0..255, wraps)</td>
+        <td><code>0</code></td>
+        <td><code>b: Byte = 255</code>, <code>n.toByte()</code></td>
+      </tr>
+      <tr>
+        <td><code>Float</code></td>
+        <td>64-bit IEEE-754 double-precision float</td>
+        <td><code>0.0</code></td>
+        <td><code>3.14</code>, <code>1.5e-3</code></td>
+      </tr>
+      <tr>
+        <td><code>Bool</code></td>
+        <td>Boolean truth value</td>
+        <td><code>false</code></td>
+        <td><code>true</code>, <code>false</code></td>
+      </tr>
+      <tr>
+        <td><code>Char</code></td>
+        <td>Single Unicode code point</td>
+        <td><code>'\0'</code></td>
+        <td><code>'a'</code>, <code>'é'</code>, <code>'\u{'{'}1F600{'}'}'</code></td>
+      </tr>
+      <tr>
+        <td><code>String</code></td>
+        <td>Immutable UTF-8 text (GC-managed)</td>
+        <td><code>""</code></td>
+        <td><code>"Hello, $name"</code>, <code>r"raw\path"</code></td>
+      </tr>
+      <tr>
+        <td><code>Bytes</code></td>
+        <td>Mutable buffer of raw bytes (0..255)</td>
+        <td><code>Bytes(0)</code></td>
+        <td><code>Bytes(4)</code>, <code>bytesOf([1, 2])</code></td>
+      </tr>
+      <tr>
+        <td><code>List&lt;T&gt;</code></td>
+        <td>Growable generic array list</td>
+        <td><code>null</code></td>
+        <td><code>[1, 2, 3]</code>, <code>List&lt;String&gt;()</code></td>
+      </tr>
+      <tr>
+        <td><code>Map&lt;K, V&gt;</code></td>
+        <td>Insertion-ordered hash map</td>
+        <td><code>null</code></td>
+        <td><code>{'{'} "a": 1, "b": 2 {'}'}</code></td>
+      </tr>
+      <tr>
+        <td><code>Set&lt;T&gt;</code></td>
+        <td>Insertion-ordered distinct value set</td>
+        <td><code>null</code></td>
+        <td><code>setOf([1, 2, 2])</code>, <code>Set&lt;Int&gt;()</code></td>
+      </tr>
+      <tr>
+        <td><code>(A, B)</code></td>
+        <td>Value-compared tuple (2 to 5 elements: <code>Tuple2..5</code>)</td>
+        <td><code>null</code></td>
+        <td><code>(1, "one")</code>, <code>lo, hi := pair</code></td>
+      </tr>
+      <tr>
+        <td><code>T?</code></td>
+        <td>Nullable optional type (<code>T</code> or <code>null</code>)</td>
+        <td><code>null</code></td>
+        <td><code>x: Int? = null</code>, <code>x ?: 0</code>, <code>x?.f</code></td>
+      </tr>
+      <tr>
+        <td><code>Result&lt;T, E&gt;</code></td>
+        <td>Success <code>Ok(v)</code> or error <code>Err(e)</code> with <code>?</code> unwrap</td>
+        <td><code>null</code></td>
+        <td><code>Ok(42)</code>, <code>Err("failed")</code>, <code>res?</code></td>
+      </tr>
+      <tr>
+        <td><code>(T) -&gt; R</code></td>
+        <td>First-class function / closure value (<code>Unit</code> = no return)</td>
+        <td><code>null</code></td>
+        <td><code>{'{'} x: Int -&gt; x * 2 {'}'}</code>, <code>{'{'} it + 1 {'}'}</code></td>
+      </tr>
+      <tr>
+        <td><code>Any</code></td>
+        <td>Universal dynamic type box (tested with <code>is</code> / <code>as</code>)</td>
+        <td><code>null</code></td>
+        <td><code>items: List&lt;Any&gt; = [1, "two", true]</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="stdlib-modules-index">Standard Library Index (<code>std.*</code>)</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 my-4">
+    {stdlibQuickList.map((m) => (
+      <a
+        href={`/documentation/stdlib#${m.name.replace('.', '-')}`}
+        data-filter-card
+        class="p-3 rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] hover:border-[#484848] transition-colors"
+      >
+        <div class="font-mono text-xs font-bold text-[#81a3e8]">{m.name}</div>
+        <div class="text-xs text-neutral-400 mt-0.5">{m.desc}</div>
+      </a>
+    ))}
+  </div>
+</DocsLayout>

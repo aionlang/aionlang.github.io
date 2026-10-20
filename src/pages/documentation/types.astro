@@ -1,0 +1,479 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+
+const toc = [
+  { id: 'primitive-types', label: 'Primitive & Built-in Types' },
+  { id: 'sized-integers', label: 'Sized Integers (Int32 & Byte)', level: 3 },
+  { id: 'custom-types', label: 'Custom Types (type) & Constructors' },
+  { id: 'static-functions', label: 'Static Functions (static fn)', level: 3 },
+  { id: 'operator-overloading', label: 'Operators & Protocols on Custom Types' },
+  { id: 'data-types', label: 'Data Types (data type)' },
+  { id: 'enums', label: 'Enums (enum)' },
+  { id: 'type-synonyms', label: 'Type Synonyms (synonym / typealias)' },
+  { id: 'tuples-and-destructuring', label: 'Tuples & Destructuring' },
+  { id: 'nullability', label: 'Nullability (T?) & Smart Casts' },
+  { id: 'any-and-casts', label: 'Any & Type Casts (is, as, as?)' },
+  { id: 'generics', label: 'Generics & Type Constraints' },
+  { id: 'interfaces', label: 'Structural Interfaces & Default Methods' },
+  { id: 'inheritance', label: 'Inheritance (open type & override)' },
+];
+---
+
+<DocsLayout
+  title="Types, Generics & Interfaces"
+  description="Comprehensive reference for Aion's static type system: primitive types, sized integers, custom types, data types, enums, synonyms, tuples, nullability, Any, monomorphized generics, structural interfaces, and inheritance."
+  category="Language Reference"
+  currentSlug="types"
+  toc={toc}
+  prevPage={{ slug: 'functions', title: 'Functions, Lambdas & Closures' }}
+  nextPage={{ slug: 'errors-and-concurrency', title: 'Errors, Tasks, Channels & Threads' }}
+>
+  <h2 id="primitive-types">Primitive &amp; Built-in Types</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Size / Representation</th>
+        <th>Default</th>
+        <th>Implicit Widening &amp; Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Int</code></td>
+        <td>64-bit signed integer (<code>i64</code> / <code>int64_t</code>)</td>
+        <td><code>0</code></td>
+        <td>Wraps on overflow. Widens implicitly to <code>Float</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Int32</code></td>
+        <td>32-bit signed integer (-2,147,483,648 to 2,147,483,647)</td>
+        <td><code>0</code></td>
+        <td>Wraps on 32-bit overflow. Widens to <code>Int</code> and <code>Float</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Byte</code></td>
+        <td>8-bit unsigned integer (0 to 255)</td>
+        <td><code>0</code></td>
+        <td>Wraps modulo 256. Widens to <code>Int32</code>, <code>Int</code>, and <code>Float</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Float</code></td>
+        <td>64-bit IEEE-754 double precision (<code>double</code>)</td>
+        <td><code>0.0</code></td>
+        <td>Prints shortest exact round-trip representation; use <code>x.format(2)</code> for fixed decimals.</td>
+      </tr>
+      <tr>
+        <td><code>Bool</code></td>
+        <td>Boolean (<code>true</code> or <code>false</code>)</td>
+        <td><code>false</code></td>
+        <td>Conditions in <code>if</code>, <code>while</code>, and <code>? :</code> must be <code>Bool</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Char</code></td>
+        <td>Single Unicode code point (<code>'a'</code>, <code>'\u{'{'}1F600{'}'}'</code>)</td>
+        <td><code>'\0'</code></td>
+        <td>Distinct from <code>Int</code>; convert with <code>c.code()</code> and <code>n.toChar()</code>.</td>
+      </tr>
+      <tr>
+        <td><code>String</code></td>
+        <td>Immutable UTF-8 text (GC object with byte length header)</td>
+        <td><code>""</code></td>
+        <td>Compared by value (<code>==</code>), hashable as <code>Map</code> key.</td>
+      </tr>
+      <tr>
+        <td><code>Bytes</code></td>
+        <td>Mutable byte buffer (0..255 per element, GC-managed)</td>
+        <td><code>Bytes(0)</code></td>
+        <td>May hold arbitrary binary data including zero bytes; works as <code>Map</code> key.</td>
+      </tr>
+      <tr>
+        <td><code>Array&lt;T&gt;</code></td>
+        <td>Fixed-length bounds-checked slot buffer</td>
+        <td><code>null</code></td>
+        <td>Created with <code>Array(size, fill)</code> or <code>Array&lt;T&gt;(size)</code>.</td>
+      </tr>
+      <tr>
+        <td><code>(A, B)</code></td>
+        <td>Tuple of 2 to 5 elements (<code>Tuple2</code>..<code>Tuple5</code>)</td>
+        <td><code>null</code></td>
+        <td>Compared and hashed by value; supports destructuring <code>a, b := pair</code>.</td>
+      </tr>
+      <tr>
+        <td><code>(T) -&gt; R</code></td>
+        <td>First-class function / closure value</td>
+        <td><code>null</code></td>
+        <td><code>Unit</code> denotes no return value: <code>(Int) -&gt; Unit</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Any</code></td>
+        <td>Universal runtime-typed interface box</td>
+        <td><code>null</code></td>
+        <td>Every primitive and object converts to <code>Any</code>; inspect with <code>is</code> / <code>as</code> / <code>as?</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="sized-integers">Sized Integers (<code>Int32</code> &amp; <code>Byte</code>)</h3>
+  <p>
+    <code>Int32</code> and <code>Byte</code> exist for binary protocols and C FFI (where they pass as <code>int32_t</code> and <code>uint8_t</code>). Narrower integers widen automatically (<code>Byte -&gt; Int32 -&gt; Int -&gt; Float</code>). Narrowing requires an explicit cast: <code>n as Byte</code> (or <code>n.toByte()</code>) wraps around, whereas <code>n as? Byte</code> returns <code>null</code> if <code>n</code> is outside <code>0..255</code>.
+  </p>
+
+  <CodeBlock
+    title="sized_ints.aion"
+    code={`b: Byte = 200
+println(b + 100, b * 2, 3 - b)               // 44 144 59 (wrapped into 0..255)
+n := 300
+println(n as Byte, n as? Byte, 200 as? Byte) // 44 null 200`}
+    output={`44 144 59
+44 null 200`}
+  />
+
+  <h2 id="custom-types">Custom Types (<code>type</code>) &amp; Constructors</h2>
+  <p>
+    Declare custom reference types with <code>type</code>. Parameters in the header become fields automatically; additional fields and <code>init {'{'} ... {'}'}</code> blocks can be placed in the body. Inside methods, <code>this</code> is implicit so fields and methods can be referenced by bare name.
+  </p>
+
+  <CodeBlock
+    title="types.aion"
+    code={`type User(name: String, age: Int = 0) {
+    active: Bool = true
+    log: String = ""
+
+    init { log = "created $name" }
+
+    fn birthday() {
+        age += 1
+        log += "; birthday"
+    }
+    fn isAdult() = age >= 18
+}
+
+// Extension method defined outside the type body:
+fn User.label() = "$name($age)"
+
+u := User("ann", 17)
+u.birthday()
+println(u.isAdult(), u.label())
+println(u)   // Auto-generated toString(), or define fn toString() -> String`}
+    output={`true ann(18)
+User(name=ann, age=18, active=true, log=created ann; birthday)`}
+  />
+
+  <p>
+    If a type omits the primary parameter list, it can define an explicit <code>constructor(...)</code> block:
+  </p>
+
+  <CodeBlock
+    title="custom_constructor.aion"
+    code={`type Counter {
+    count: Int
+    label: String
+
+    constructor(label: String) {
+        this.label = label
+    }
+    fn inc() { count += 1 }
+    fn show() = "$label=$count"
+}`}
+  />
+
+  <h3 id="static-functions">Static Functions (<code>static fn</code>)</h3>
+  <p>
+    A <code>static fn</code> belongs to the type namespace rather than an instance (it has no <code>this</code>) and is called via <code>TypeName.method(...)</code>. It can be declared inside the type body or outside as <code>static fn TypeName.method(...)</code>:
+  </p>
+
+  <CodeBlock
+    title="statics.aion"
+    code={`type Point(x: Int, y: Int) {
+    static fn origin() = Point(0, 0)
+    static fn diagonal(n: Int) = Point(n, n)
+    fn doubled() = diagonal(x * 2)   // methods can call own statics bare
+}
+static fn Point.unit() = Point(1, 1)
+
+println(Point.origin(), Point.unit(), Point(3, 3).doubled())`}
+    output={`Point(x=0, y=0) Point(x=1, y=1) Point(x=6, y=6)`}
+  />
+
+  <h2 id="operator-overloading">Operators &amp; Collection Protocols on Custom Types</h2>
+  <p>
+    Operators and collection syntax desugar to ordinary method calls, allowing any custom type to participate:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Syntax Written</th>
+        <th>Method Called on Type</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>a + b</code>, <code>a - b</code>, <code>a * b</code>, <code>a / b</code>, <code>a % b</code></td>
+        <td><code>a.plus(b)</code>, <code>a.minus(b)</code>, <code>a.times(b)</code>, <code>a.div(b)</code>, <code>a.rem(b)</code> (also enables <code>+=</code>, <code>-=</code>, etc.)</td>
+      </tr>
+      <tr>
+        <td><code>-a</code></td>
+        <td><code>a.unaryMinus()</code></td>
+      </tr>
+      <tr>
+        <td><code>a == b</code>, <code>a != b</code></td>
+        <td><code>a.equals(b)</code> (and <code>a.hashCode() -&gt; Int</code> for <code>Map</code> keys / <code>Set</code> members)</td>
+      </tr>
+      <tr>
+        <td><code>a &lt; b</code>, <code>a &lt;= b</code>, <code>a &gt; b</code>, <code>a &gt;= b</code></td>
+        <td><code>a.compareTo(b)</code> compared against <code>0</code> (negative, zero, positive)</td>
+      </tr>
+      <tr>
+        <td><code>x[i]</code>, <code>x[i] = v</code></td>
+        <td><code>x.get(i)</code>, <code>x.set(i, v)</code></td>
+      </tr>
+      <tr>
+        <td><code>x[a..b]</code>, <code>x[a..=b]</code></td>
+        <td><code>x.slice(a, b)</code>, <code>x.slice(a, b + 1)</code> (uses <code>0</code> and <code>x.size()</code> when omitted)</td>
+      </tr>
+      <tr>
+        <td><code>item in x</code></td>
+        <td><code>x.contains(item)</code></td>
+      </tr>
+      <tr>
+        <td><code>for item in x</code></td>
+        <td>Iterates <code>x.iter()</code> if present; otherwise loops <code>0..x.size()</code> calling <code>x.get(i)</code></td>
+      </tr>
+      <tr>
+        <td><code>a, b := x</code></td>
+        <td><code>x.component1()</code>, <code>x.component2()</code>, ...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="data-types">Data Types (<code>data type</code>)</h2>
+  <p>
+    <code>data type</code> automatically generates value-based <code>equals(other)</code>, <code>hashCode()</code>, <code>copy(...)</code> with named defaults for every primary field, and <code>component1()..componentN()</code> destructuring methods:
+  </p>
+
+  <CodeBlock
+    title="data_type.aion"
+    code={`data type Point(x: Int, y: Int)
+
+a := Point(2, 3)
+println(a == Point(2, 3), a != Point(3, 2))   // true true (compared by value)
+moved := a.copy(x: 10)
+println(moved, a)
+x, y := moved                                 // destructuring
+println("x=$x y=$y")`}
+    output={`true true
+Point(x=10, y=3) Point(x=2, y=3)
+x=10 y=3`}
+  />
+
+  <h2 id="enums">Enums (<code>enum</code>)</h2>
+  <p>
+    An <code>enum</code> defines a fixed set of named instances. Each variant has <code>.name</code> (<code>String</code>) and <code>.ordinal</code> (<code>Int</code> from 0), compares with <code>==</code> and <code>&lt;</code>, works as a <code>Map</code> key, and supports <code>EnumName.values() -&gt; List&lt;EnumName&gt;</code> and <code>EnumName.valueOf(name) -&gt; EnumName?</code>. Variants can also carry fields and methods:
+  </p>
+
+  <CodeBlock
+    title="enums.aion"
+    code={`enum Coin(cents: Int) {
+    Penny(1), Nickel(5), Dime(10), Quarter(25)
+
+    fn label() = "$name ($cents¢)"
+}
+
+for c in Coin.values() {
+    if c.cents >= 10 { println(c.label()) }
+}
+println(Coin.valueOf("Quarter")?.cents ?: -1)`}
+    output={`Dime (10¢)
+Quarter (25¢)
+25`}
+  />
+
+  <h2 id="type-synonyms">Type Synonyms (<code>synonym</code> / <code>typealias</code>)</h2>
+  <p>
+    <code>synonym Name = Type</code> (also spelled <code>syn</code> or <code>typealias</code>) creates an alias for an existing type, including generic and function types. The prelude defines standard functional synonyms used by streams and collections:
+  </p>
+
+  <CodeBlock
+    title="synonyms.aion"
+    code={`synonym Prices = Map<String, Float>
+synonym Table<V> = Map<String, V>
+
+// Built-in prelude functional synonyms:
+// Predicate<T>      = (T) -> Bool
+// BiPredicate<A, B> = (A, B) -> Bool
+// Function<T, R>    = (T) -> R
+// BiFunction<A,B,R> = (A, B) -> R
+// Consumer<T>       = (T) -> Unit
+// Supplier<T>       = () -> T
+// UnaryOperator<T>  = (T) -> T
+// BinaryOperator<T> = (T, T) -> T
+// Comparator<T>     = (T, T) -> Int
+
+p := Prices()
+p["coffee"] = 3.5
+println(p)`}
+    output={`{coffee: 3.5}`}
+  />
+
+  <h2 id="tuples-and-destructuring">Tuples &amp; Destructuring</h2>
+  <p>
+    Tuples group 2 to 5 values together: <code>(1, "one")</code> has type <code>(Int, String)</code> (backed by prelude types <code>Tuple2</code>..<code>Tuple5</code> with fields <code>.first</code>, <code>.second</code>, <code>.third</code>, <code>.fourth</code>, <code>.fifth</code>). Tuples compare and hash by value.
+  </p>
+
+  <CodeBlock
+    title="tuples.aion"
+    code={`pair := (1, "one")
+println(pair, pair.first, pair.second)
+
+// Destructuring declarations, nested patterns, _ wildcard, and multi-assignment swap:
+(a, (b, _)) := (10, (20, 30))
+x, y := 1, 2
+x, y = y, x
+println(a, b, x, y)
+
+ages := {"ann": 31, "bob": 25}
+for (name, age) in ages.entries() { println("$name -> $age") }`}
+    output={`(1, one) 1 one
+10 20 2 1
+ann -> 31
+bob -> 25`}
+  />
+
+  <h2 id="nullability">Nullability (<code>T?</code>) &amp; Flow-Sensitive Smart Casts</h2>
+  <p>
+    Any type <code>T</code> can be made nullable by appending <code>?</code>: <code>Int?</code>, <code>String?</code>, <code>User?</code>. Plain types cannot hold <code>null</code> unless unpacked through null-safe operators or smart casts:
+  </p>
+  <ul>
+    <li><code>x?.field</code> / <code>x?.method()</code> — Safe navigation: evaluates to <code>null</code> if <code>x</code> is <code>null</code>.</li>
+    <li><code>x ?: fallback</code> — Elvis operator: yields <code>x</code> if non-null, otherwise evaluates <code>fallback</code> (which can also be <code>return</code>, <code>break</code>, <code>continue</code>, or <code>panic(...)</code>).</li>
+    <li><code>x!!</code> — Non-null assertion: unwraps <code>T?</code> to <code>T</code>, or panics with <code>unexpected null value</code>.</li>
+    <li><strong>Smart Casts:</strong> Inside <code>if x != null {'{'} ... {'}'}</code>, after an early-exit guard <code>if x == null {'{'} return ... {'}'}</code>, or inside <code>while node != null {'{'} ... {'}'}</code>, <code>x</code> is automatically narrowed from <code>T?</code> to <code>T</code>.</li>
+  </ul>
+
+  <CodeBlock
+    title="nullability.aion"
+    code={`fn greet(name: String?) -> String {
+    if name == null { return "Hello, stranger!" }
+    // name is smart-cast to plain String here:
+    return "Hello, \${name.capitalize()}!"
+}
+
+prices := {"pen": 150, "book": 1200}
+fn withTax(item: String) -> Int {
+    base := prices.getOrNull(item) ?: return -1
+    return base + base / 5
+}
+
+println(greet("ada"), "|", greet(null))
+println(withTax("book"), withTax("missing"))`}
+    output={`Hello, Ada! | Hello, stranger!
+1440 -1`}
+  />
+
+  <h2 id="any-and-casts"><code>Any</code> &amp; Runtime Casts (<code>is</code>, <code>!is</code>, <code>as</code>, <code>as?</code>)</h2>
+  <p>
+    <code>Any</code> can hold a value of any primitive or object type. Use <code>v is T</code> (which smart-casts <code>v</code> to <code>T</code> inside the branch), <code>v as T</code> (checked cast, panics on mismatch), or <code>v as? T</code> (safe cast, returns <code>T?</code>):
+  </p>
+
+  <CodeBlock
+    title="any_casts.aion"
+    code={`items: List<Any> = [21, "hello", 3.5, true]
+for v in items {
+    desc := when v {
+        is Int -> "Int doubled = \${v * 2}"
+        is String -> "String upper = \${v.upper()}"
+        is Float -> "Float = $v"
+        else -> "Other = $v"
+    }
+    println(desc)
+}
+
+// as and as? also convert between basic types:
+println("42" as Int, "bad" as? Int, 3.9 as Int)`}
+    output={`Int doubled = 42
+String upper = HELLO
+Float = 3.5
+Other = true
+42 null 3`}
+  />
+
+  <h2 id="generics">Monomorphized Generics &amp; Type Constraints</h2>
+  <p>
+    Functions and types can take type parameters <code>&lt;T&gt;</code>, optionally constrained by an interface bound <code>&lt;T: Shape&gt;</code> or a recursive bound <code>&lt;T: Comparable&lt;T&gt;&gt;</code>. Generics are <strong>monomorphized</strong> at compile time, producing specialized machine code for each concrete type combination.
+  </p>
+
+  <CodeBlock
+    title="generics.aion"
+    code={`type Box<T>(value: T) {
+    fn get() = value
+    fn map<R>(f: (T) -> R) = Box(f(value))
+}
+
+fn biggest<T: Comparable<T>>(a: T, b: T) = if a.compareTo(b) >= 0 { a } else { b }
+
+b := Box(21).map { it * 2 }
+println(b.get(), biggest(10, 25), biggest("pear", "apple"))`}
+    output={`42 25 pear`}
+  />
+
+  <h2 id="interfaces">Structural Interfaces &amp; Default Methods</h2>
+  <p>
+    An <code>interface</code> lists required methods and optional default methods (methods with a body). There is no <code>implements</code> keyword — any <code>type</code> whose methods match the required signatures satisfies the interface automatically (checked statically at compile time).
+  </p>
+
+  <CodeBlock
+    title="interfaces.aion"
+    code={`interface Shape {
+    fn area() -> Float
+    fn name() -> String
+    fn describe() -> String = "\${name()} (area \${area().format(1)})"
+}
+
+type Circle(r: Float) {
+    fn area() = 3.14159 * r * r
+    fn name() = "circle"
+}
+
+type Square(s: Float) {
+    fn area() = s * s
+    fn name() = "square"
+    fn describe() = "custom square $s x $s"   // overrides default method
+}
+
+shapes: List<Shape> = [Circle(2.0), Square(3.0)]
+for s in shapes { println(s.describe()) }`}
+    output={`circle (area 12.6)
+custom square 3 x 3`}
+  />
+
+  <h2 id="inheritance">Inheritance (<code>open type</code>, <code>override</code> &amp; <code>super</code>)</h2>
+  <p>
+    A type marked <code>open</code> can be extended by subtypes using <code>: Parent(args)</code>. Methods marked <code>open fn</code> can be replaced in subtypes with <code>override fn</code> and dispatched dynamically at runtime; <code>super.method()</code> calls the parent implementation. Generic types can also be marked <code>open</code> and extended.
+  </p>
+
+  <CodeBlock
+    title="inheritance.aion"
+    code={`open type Animal(name: String) {
+    open fn sound() = "..."
+    open fn speak() = "$name says \${sound()}"
+}
+
+open type Dog(name: String) : Animal(name) {
+    override fn sound() = "Woof"
+}
+
+type Puppy(name: String) : Dog(name) {
+    override fn sound() = "Yip (" + super.sound() + ")"
+}
+
+animals: List<Animal> = [Dog("Rex"), Puppy("Bit"), Animal("Turtle")]
+for a in animals { println(a.speak()) }`}
+    output={`Rex says Woof
+Bit says Yip (Woof)
+Turtle says ...`}
+  />
+</DocsLayout>

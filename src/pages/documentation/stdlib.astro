@@ -1,0 +1,227 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+import MethodTable from '../../components/MethodTable.astro';
+
+const toc = [
+  { id: 'std-fs', label: 'std.fs & std.path' },
+  { id: 'std-os', label: 'std.os & std.time' },
+  { id: 'std-math', label: 'std.math, std.bigint & std.random' },
+  { id: 'std-json', label: 'std.json, std.csv & std.xml' },
+  { id: 'std-regex', label: 'std.regex & std.unicode' },
+  { id: 'std-crypto', label: 'std.hash, std.encoding & std.crypto' },
+  { id: 'std-zlib', label: 'std.zlib & std.archive' },
+  { id: 'std-http', label: 'std.net, std.http & std.http2' },
+  { id: 'std-websocket', label: 'std.websocket & std.smtp' },
+  { id: 'std-sqlite', label: 'std.sqlite & std.reflect' },
+  { id: 'std-cli', label: 'std.cli, std.term, std.log, std.test & std.gc' },
+];
+---
+
+<DocsLayout
+  title="Standard Library Modules (std.*)"
+  description="Complete reference for all 25 standard library modules bundled with Aion: files, OS, time, math, BigInt, JSON, XML, CSV, Regex, Unicode, Crypto, HTTP/1.1 & HTTP/2, WebSockets, SQLite, Reflection, CLI, and Terminal."
+  category="Standard Library & API"
+  currentSlug="stdlib"
+  toc={toc}
+  prevPage={{ slug: 'prelude-methods', title: 'Prelude & Built-in Methods' }}
+  nextPage={{ slug: 'packages-and-ffi', title: 'Packages, C FFI & Architecture' }}
+>
+  <Callout type="note" title="Importing Standard Library Modules">
+    Import any standard library module with <code>import &lt;name&gt;</code> (e.g. <code>import json</code>) or explicitly with <code>import std.&lt;name&gt;</code>. Only modules you actually import are compiled and linked into your binary.
+  </Callout>
+
+  <h2 id="std-fs"><code>std.fs</code> &amp; <code>std.path</code> — Filesystem &amp; Paths</h2>
+  <MethodTable
+    title="import fs / import path"
+    badge="Files & Directories"
+    methods={[
+      { sig: 'fs.readText(path) -> String? / fs.readLines(path) -> List<String>? / fs.readBytes(path) -> Bytes?', returns: 'String? / List? / Bytes?', desc: 'Reads a file completely, or returns null on error (inspect fs.lastError()).' },
+      { sig: 'fs.writeText(path, s) / fs.writeLines(path, list) / fs.writeBytes(path, b)', returns: 'Bool', desc: 'Creates or overwrites a file; returns true on success.' },
+      { sig: 'fs.appendText(path, s) / fs.appendBytes(path, b)', returns: 'Bool', desc: 'Appends text or bytes to an existing or new file.' },
+      { sig: 'fs.exists(p) / fs.isDir(p) / fs.isFile(p) / fs.size(p) -> Int / fs.modified(p) -> Int', returns: 'Bool / Int', desc: 'Queries file existence, kind, size in bytes, and modification time.' },
+      { sig: 'fs.listDir(p) -> List<String>? / fs.mkdir(p) / fs.mkdirs(p)', returns: 'List<String>? / Bool', desc: 'Lists sorted directory entries or creates single/nested directories.' },
+      { sig: 'fs.remove(p) / fs.removeAll(p) / fs.rename(from, to) / fs.copy(from, to)', returns: 'Bool', desc: 'Deletes a file/empty folder, recursively deletes a directory tree, renames, or copies.' },
+      { sig: 'fs.cwd() / fs.chdir(p) / fs.absolute(p) -> String? / fs.tempDir() / fs.makeTempDir(prefix) -> String?', returns: 'String / Bool / String?', desc: 'Working directory, absolute path resolution, and temporary directories.' },
+      { sig: 'path.join(a, b) / path.basename(p) / path.dirname(p) / path.extension(p) / path.stem(p)', returns: 'String', desc: 'Pure string path manipulation using / separator.' },
+      { sig: 'path.withExtension(p, ext) / path.isAbsolute(p) -> Bool / path.normalize(p) -> String', returns: 'String / Bool', desc: 'Replaces file extension, checks absolute path, or resolves . and .. segments.' },
+    ]}
+  />
+
+  <h2 id="std-os"><code>std.os</code> &amp; <code>std.time</code> — Process, Environment &amp; DateTime</h2>
+  <MethodTable
+    title="import os / import time"
+    badge="System & Clocks"
+    methods={[
+      { sig: 'os.env(name) -> String? / os.setEnv(k, v) / os.unsetEnv(k) / os.environment() -> Map<String, String>', returns: 'String? / Bool / Map', desc: 'Reads and modifies process environment variables.' },
+      { sig: 'os.pid() / os.cpuCount() / os.hostname() / os.platform() / os.arch() / os.homeDir() / os.exit(code)', returns: 'Int / String / Never', desc: 'Process ID, CPU count, hostname, OS name ("linux", "macos", "windows"), architecture, home directory, and process exit.' },
+      { sig: 'os.exec(program, args: List<String>, input = "") -> CommandResult', returns: 'CommandResult', desc: 'Runs program directly without a shell and captures .status (Int), .stdout (String), .stderr (String), and .ok() (Bool).' },
+      { sig: 'os.shell(command: String, input = "") -> CommandResult / os.run(program, args) -> Int', returns: 'CommandResult / Int', desc: 'Runs command through sh -c (or cmd /c on Windows), or runs interactively sharing the terminal.' },
+      { sig: 'time.millis() / time.nanos() / time.monotonic() / time.measure { ... } -> Int', returns: 'Int', desc: 'Wall-clock epoch milliseconds, nanoseconds, monotonic clock, and block execution timer in ms.' },
+      { sig: 'time.now() / time.nowLocal() / time.of(year, month, day, hour=0, min=0, sec=0, utc=true)', returns: 'DateTime', desc: 'Constructs DateTime instances in UTC or local time.' },
+      { sig: 'time.parse(text, pattern = "%Y-%m-%d %H:%M:%S") -> DateTime?', returns: 'DateTime?', desc: 'Parses a formatted date/time string into a DateTime.' },
+      { sig: 'DateTime.year() / .month() / .day() / .hour() / .minute() / .second() / .weekday() / .dayOfYear() / .weekdayName() / .monthName()', returns: 'Int / String', desc: 'Extracts calendar components from a DateTime.' },
+      { sig: 'DateTime.format(pattern) / .iso() / .toUtc() / .toLocal() / .plus(ms) / .plusSeconds(n) / .plusMinutes(n) / .plusHours(n) / .plusDays(n) / .plusMonths(n) / .plusYears(n) / .since(other)', returns: 'String / DateTime / Int', desc: 'Formats (strftime), converts timezones, and performs date arithmetic (+ and - operators also supported).' },
+    ]}
+  />
+
+  <h2 id="std-math"><code>std.math</code>, <code>std.bigint</code> &amp; <code>std.random</code></h2>
+  <MethodTable
+    title="import math / import bigint / import random"
+    badge="Mathematics & PRNG"
+    methods={[
+      { sig: 'math.pi / math.tau / math.e / math.inf / math.nan', returns: 'Float', desc: 'Standard mathematical constants.' },
+      { sig: 'math.sqrt / .cbrt / .pow(x, y) / .exp / .log / .log2 / .log10 / .hypot(x, y)', returns: 'Float', desc: 'Roots, powers, exponentials, and logarithms.' },
+      { sig: 'math.sin / .cos / .tan / .asin / .acos / .atan / .atan2(y, x) / .sinh / .cosh / .tanh / .toRadians / .toDegrees', returns: 'Float', desc: 'Trigonometric and hyperbolic functions.' },
+      { sig: 'math.floor / .ceil / .round / .trunc / .fmod / .abs / .fmax / .fmin / math.max(Int, Int) / math.min(Int, Int)', returns: 'Float / Int', desc: 'Rounding and extrema functions.' },
+      { sig: 'bigint.of(n: Int) / bigint.parse(text, base = 10) -> BigInt? / bigint.factorial(n) / bigint.fibonacci(n)', returns: 'BigInt / BigInt?', desc: 'Arbitrary-precision integers via GMP. Supports +, -, *, /, %, <, ==, .pow(n), .sqrt(), .gcd(b), .lcm(b), .modPow(e, m), .isProbablePrime().' },
+      { sig: 'bigint.rational(num, den) -> Rational', returns: 'Rational', desc: 'Exact reduced fractions supporting +, -, *, /, .inverse(), .pow(n), .floor(), .ceil(), .toFloat().' },
+      { sig: 'random.int(bound) / .range(lo, hi) / .float() / .between(lo, hi) / .bool() / .chance(p)', returns: 'Int / Float / Bool', desc: 'Fast PRNG numbers and probabilities (seed with random.seed(n)).' },
+      { sig: 'random.choice(list) / .shuffle(list) / .sample(list, n) / .secureBytes(n) -> Bytes / .token(bytes = 16) -> String', returns: 'T / List<T> / Bytes / String', desc: 'Collection sampling and OS cryptographically secure random bytes/hex tokens.' },
+    ]}
+  />
+
+  <h2 id="std-json"><code>std.json</code>, <code>std.csv</code> &amp; <code>std.xml</code> — Data Formats</h2>
+  <CodeBlock
+    title="json_xml_demo.aion"
+    code={`import json
+import xml
+
+doc := json.parse(r"""{"user": "Ada", "roles": ["admin", "dev"]}""")!!
+println(doc.getString("user"), doc["roles"]?.at(0)?.asString())
+
+page := xml.parseHtml("<ul class=nav><li><a href=/docs>Docs<li><a href=/dl>Download</ul>")
+for a in page.select("ul.nav li a") {
+    println(a.attr("href"), "->", a.text())
+}`}
+    output={`Ada admin
+/docs -> Docs
+/dl -> Download`}
+  />
+
+  <MethodTable
+    title="import json / import csv / import xml"
+    badge="Parsers & Builders"
+    methods={[
+      { sig: 'json.parse(text) -> Json? / json.lastError() -> String', returns: 'Json?', desc: 'Parses JSON text into a Json node (JsonNull, JsonBool, JsonNumber, JsonString, JsonArray, JsonObject).' },
+      { sig: 'json.object() / json.array() / json.string(s) / json.int(n) / json.number(x) / json.bool(b) / json.nil()', returns: 'Json', desc: 'Constructs JSON trees programmatically.' },
+      { sig: 'Json.kind() / .asString() / .asInt() / .asFloat() / .asBool() / .get(key) / .at(i) / .getString(key, fallback="") / .keys() / .size() / .compact() / .pretty(indent = 2)', returns: 'String / Int? / Json? / List', desc: 'Inspects and serializes JSON values.' },
+      { sig: 'csv.parse(text, delimiter = ",") -> List<List<String>>? / csv.parseRecords(text) -> List<Map<String, String>>?', returns: 'List?', desc: 'RFC 4180 CSV parser supporting quoted fields and multi-line values.' },
+      { sig: 'csv.format(rows, delimiter = ",") -> String / csv.readFile(path) / csv.writeFile(path, rows)', returns: 'String / List? / Bool', desc: 'Formats or reads/writes CSV files.' },
+      { sig: 'xml.parse(text, keepWhitespace = false) -> Node? / xml.parseHtml(text) -> Node', returns: 'Node? / Node', desc: 'Parses strict XML (via expat) or lenient HTML5 into a DOM tree.' },
+      { sig: 'Node.select(cssSelector) -> List<Node> / .selectFirst(css) -> Node? / .matches(css) -> Bool', returns: 'List<Node> / Node? / Bool', desc: 'Queries XML/HTML nodes with full CSS selectors (tag, #id, .class, [attr=val], >, +, ~, :nth-child, :not, :contains).' },
+      { sig: 'Node.attr(name) / .text() / .childrenNamed(tag) / .child(tag) / .toXml() / .pretty(indent = 2) / .toHtml()', returns: 'String? / String / List<Node>', desc: 'Reads attributes/text or serializes back to XML/HTML.' },
+    ]}
+  />
+
+  <h2 id="std-regex"><code>std.regex</code> &amp; <code>std.unicode</code> — Text Processing</h2>
+  <MethodTable
+    title="import regex / import unicode"
+    badge="Linear-Time Regex & UTF-8"
+    methods={[
+      { sig: 'regex.compile(pattern, flags = "") -> Regex? / regex.regex(pattern, flags = "") -> Regex', returns: 'Regex? / Regex', desc: 'Compiles a non-backtracking (linear-time) regular expression with flags "i", "m", "s" and named groups (?<name>...).' },
+      { sig: 'regex.matches(pattern, text) -> Bool / regex.test(pattern, text) -> Bool / regex.escape(text) -> String', returns: 'Bool / String', desc: 'Quick full-string match, substring match, or literal escaping.' },
+      { sig: 'Regex.test(text) / .matches(text) / .find(text, from = 0) -> Match? / .findAll(text) -> List<Match> / .count(text) -> Int', returns: 'Bool / Match? / List<Match> / Int', desc: 'Searches text with a compiled Regex. Match has .value(), .start(), .end(), .group(i), .named(name), .groups().' },
+      { sig: 'Regex.replace(text, repl) / .replaceAll(text, repl) / .replaceWith(text) { match -> ... } / .split(text) -> List<String>', returns: 'String / List<String>', desc: 'Replaces matches (supporting $1, ${name}, $$) or splits text.' },
+      { sig: 'unicode.normalize(text, form = "NFC") -> String? / .casefold(text) / .sameText(a, b) -> Bool / .stripAccents(text) -> String?', returns: 'String? / Bool', desc: 'Full Unicode normalization (NFC, NFD, NFKC, NFKD), accent-insensitive comparison, and accent stripping via utf8proc.' },
+      { sig: 'unicode.lower(text) / .upper(text) / .title(text) / .width(text) -> Int / .graphemes(text) -> List<String>? / .category(c: Char) -> String', returns: 'String / Int / List<String>?', desc: 'Full Unicode case conversion, East-Asian terminal column width, user-perceived grapheme clusters, and general category.' },
+    ]}
+  />
+
+  <h2 id="std-crypto"><code>std.hash</code>, <code>std.encoding</code> &amp; <code>std.crypto</code></h2>
+  <MethodTable
+    title="import hash / import encoding / import crypto"
+    badge="Digests, Encoding & OpenSSL"
+    methods={[
+      { sig: 'hash.sha256(text) / .sha512(text) / .sha1(text) / .md5(text) -> String', returns: 'String', desc: 'Lower-case hex digests of text (also sha256Bytes, sha512Bytes, etc. returning Bytes).' },
+      { sig: 'hash.hmacSha256(key: Bytes, msg: Bytes) / .hmacSha512 / .hmacSha1 -> Bytes / hash.crc32(text) -> Int', returns: 'Bytes / Int', desc: 'HMAC message authentication codes and CRC-32 checksums.' },
+      { sig: 'encoding.base64(text) / .base64Bytes(b) / .base64Url(text) / .base64Decode(text) -> Bytes?', returns: 'String / Bytes?', desc: 'Standard and URL-safe Base64 encoding and decoding.' },
+      { sig: 'encoding.urlEncode(s) / .urlEncodePath(s) / .urlDecode(s, plusIsSpace = false) -> String? / encoding.uuid() -> String', returns: 'String / String?', desc: 'Percent-encoding and random UUID v4 generation.' },
+      { sig: 'crypto.newKey(size = 32) -> Bytes / crypto.encrypt(key, data, context = Bytes(0)) -> Bytes? / crypto.decrypt(key, sealed, context = Bytes(0)) -> Bytes?', returns: 'Bytes / Bytes?', desc: 'Authenticated AES-GCM (128/192/256) encryption and decryption (also encryptChaCha / decryptChaCha and encryptText / decryptText).' },
+      { sig: 'crypto.hashPassword(password) -> String? / crypto.verifyPassword(password, stored) -> Bool / crypto.pbkdf2(...)', returns: 'String? / Bool / Bytes?', desc: 'PBKDF2-HMAC-SHA256 password hashing and constant-time verification.' },
+      { sig: 'crypto.newKeyPair() -> KeyPair? / crypto.sign(privateKey, msg) -> Bytes? / crypto.verify(publicKey, msg, sig) -> Bool / crypto.equal(a, b) -> Bool', returns: 'KeyPair? / Bytes? / Bool', desc: 'Ed25519 digital signatures and constant-time byte comparison.' },
+    ]}
+  />
+
+  <h2 id="std-zlib"><code>std.zlib</code> &amp; <code>std.archive</code> — Compression &amp; Archives</h2>
+  <MethodTable
+    title="import zlib / import archive"
+    badge="Compression"
+    methods={[
+      { sig: 'zlib.gzip(data: Bytes, level = -1) / .compress(data, level = -1) / .deflate(data, level = -1) -> Bytes?', returns: 'Bytes?', desc: 'Compresses data in gzip, zlib, or raw deflate format (levels 0..9).' },
+      { sig: 'zlib.gunzip(data, maxSize = 1GiB) / .decompress / .inflate / .decompressAny -> Bytes?', returns: 'Bytes?', desc: 'Decompresses data with built-in maxSize protection against decompression bombs.' },
+      { sig: 'archive.list(path) -> List<Entry>? / archive.read(path, name) -> Bytes? / archive.readText(path, name) -> String?', returns: 'List<Entry>? / Bytes? / String?', desc: 'Reads zip, tar, tar.gz, tar.xz, tar.zst, 7z, rar, iso archives via libarchive.' },
+      { sig: 'archive.extract(path, folder, maxBytes = 4GiB) -> Int? / archive.create(path, filesMap) -> Bool / archive.pack(path, folder) -> Bool', returns: 'Int? / Bool', desc: 'Safely extracts archives (blocking path traversal .. and symlinks) or creates archives from a Map or folder.' },
+    ]}
+  />
+
+  <h2 id="std-http"><code>std.net</code>, <code>std.http</code> &amp; <code>std.http2</code> — Networking &amp; Web</h2>
+  <MethodTable
+    title="import net / import http / import http2 / import hpack"
+    badge="TCP, TLS, HTTP/1.1 & HTTP/2"
+    methods={[
+      { sig: 'net.connect(host, port, timeoutMs = 30000) -> Conn? / net.listen(port, host = "") -> Listener?', returns: 'Conn? / Listener?', desc: 'Task-friendly non-blocking TCP sockets. Conn supports .send(b), .sendText(s), .receive(max), .startTls(host, verify=true, cafile="", protocols=[]), .close().' },
+      { sig: 'net.lookup(host) -> List<String> / net.reverse(ip) -> String?', returns: 'List<String> / String?', desc: 'DNS forward and reverse resolution.' },
+      { sig: 'http.get(url, headers={}, options=Options()) / .post(url, text, ...) / .postJson(url, json) / .put / .delete / .download(url, path)', returns: 'Response? / Bool', desc: 'HTTP/1.1 + HTTPS client with redirect following and proxy support. Response has .status, .headers, .body, .ok(), .text(), .json().' },
+      { sig: 'http.listen(port, host = "") { req -> response } -> Server? / http.serve(port, host = "") { req -> response }', returns: 'Server? / Unit', desc: 'Concurrent HTTP server. Answer with http.text(s), http.html(s), http.jsonResponse(j), http.bytes(b), http.redirect(url), or http.notFound().' },
+      { sig: 'http2.get(url) / .post(url, text, headers) / http2.connect(url) -> Connection?', returns: 'Response? / Connection?', desc: 'RFC 9113 HTTP/2 client with ALPN TLS negotiation, HPACK header compression (std.hpack), and multiplexed concurrent requests on a single Connection.' },
+    ]}
+  />
+
+  <h2 id="std-websocket"><code>std.websocket</code> &amp; <code>std.smtp</code></h2>
+  <MethodTable
+    title="import websocket / import smtp"
+    badge="WebSockets & Email"
+    methods={[
+      { sig: 'websocket.connect(url, headers = {}) -> Socket? / websocket.listen(port, host = "") { ws -> ... } -> Server?', returns: 'Socket? / Server?', desc: 'RFC 6455 WebSocket client (ws:// and wss://) and concurrent server. Socket has .send(text), .sendBinary(bytes), .receive() -> Message?, .ping(), .close().' },
+      { sig: 'smtp.Server(host, port = 587, security = "starttls", username = "", password = "")', returns: 'Server', desc: 'Configures an SMTP relay with STARTTLS, implicit TLS, or plain connection and AUTH PLAIN/LOGIN.' },
+      { sig: 'smtp.Message(from, to: List<String>, subject, body, cc=[], bcc=[], html=false) / smtp.send(server, msg) -> Bool', returns: 'Message / Bool', desc: 'Constructs and sends UTF-8 encoded email messages.' },
+    ]}
+  />
+
+  <h2 id="std-sqlite"><code>std.sqlite</code> &amp; <code>std.reflect</code> — Database &amp; Reflection</h2>
+  <CodeBlock
+    title="sqlite_reflect.aion"
+    code={`import sqlite
+import reflect
+
+db := sqlite.open(":memory:")!!
+db.script("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)")
+db.exec("INSERT INTO items (name) VALUES (?)", [sqlite.text("Aion")])
+println("Row:", db.queryOne("SELECT id, name FROM items")!!.text("name"))
+db.close()
+
+type Point(x: Int, y: Int)
+p := Point(3, 4)
+println("Fields:", reflect.fields(p), "x =", reflect.get(p, "x"))`}
+    output={`Row: Aion
+Fields: [x: Int, y: Int] x = 3`}
+  />
+
+  <MethodTable
+    title="import sqlite / import reflect"
+    badge="SQLite3 & Runtime Reflection"
+    methods={[
+      { sig: 'sqlite.open(path) -> Database? (or ":memory:")', returns: 'Database?', desc: 'Opens a SQLite3 database connection. Automatically links -lsqlite3.' },
+      { sig: 'Database.script(sql) / .exec(sql, params = []) / .query(sql, params = []) -> List<Row>? / .queryOne(sql, params = []) -> Row? / .transaction { ... } / .close()', returns: 'Bool / List<Row>? / Row?', desc: 'Executes SQL statements with bound parameters (sqlite.int, .float, .text, .blob, .bool, .nil) and reads typed columns via Row.int(col), .text(col), .float(col), .blob(col), .isNull(col).' },
+      { sig: 'reflect.typeNames() -> List<String> / reflect.isKnown(name) / reflect.parentOf(name) / reflect.isInstance(x, name)', returns: 'List<String> / Bool / String?', desc: 'Inspects registered program types and inheritance hierarchies at runtime.' },
+      { sig: 'reflect.fields(x) -> List<FieldInfo> / reflect.get(x, field) -> Any? / reflect.set(x, field, val) -> Bool', returns: 'List<FieldInfo> / Any? / Bool', desc: 'Lists fields of an object or reads/writes field values dynamically by name.' },
+      { sig: 'reflect.methods(x) -> List<MethodSig> / reflect.call(x, method, args = []) -> Any? / reflect.create(typeName, args = []) -> Any?', returns: 'List<MethodSig> / Any?', desc: 'Inspects methods, invokes a method by name, or instantiates a type dynamically by name.' },
+    ]}
+  />
+
+  <h2 id="std-cli"><code>std.cli</code>, <code>std.term</code>, <code>std.log</code>, <code>std.test</code> &amp; <code>std.gc</code></h2>
+  <MethodTable
+    title="import cli / import term / import log / import test / import gc"
+    badge="CLI, Terminal, Logging & GC"
+    methods={[
+      { sig: 'cli.parser(program, about) -> .flag(name, short, help), .option(name, short, help, default), .multi(...), .positional(name, help), .rest(name, help), .parseOrExit(args()) -> Args', returns: 'Parser / Args', desc: 'Declarative CLI argument parser with automatic --help generation. Args has .flag(name), .get(name), .getInt(name), .getFloat(name), .has(name), .all(name), .rest().' },
+      { sig: 'term.bold(s) / .dim / .italic / .underline / .red / .green / .yellow / .blue / .cyan / .color(s, 0..255) / .rgb(s, r, g, b) / .strip(s)', returns: 'String', desc: 'ANSI terminal styling (automatically respects NO_COLOR and non-TTY pipes).' },
+      { sig: 'term.size() -> Size(columns, rows) / .clearScreen() / .moveTo(col, row) / .rawMode(true) / .readKey(timeoutMs = -1) -> String?', returns: 'Size / Unit / String?', desc: 'Terminal dimensions, cursor control, and non-blocking raw key input.' },
+      { sig: 'log.debug(msg, fields={}) / .info / .warn / .error / log.setLevel(name) / log.setOutput(path) / log.Logger(name)', returns: 'Unit / Logger', desc: 'Structured timestamped logger with configurable levels, output file, and named child loggers.' },
+      { sig: 'test.run(name) { ... } / test.skip(name) / test.failed() -> Int / test.summary()', returns: 'Unit / Int', desc: 'Lightweight multi-test runner that catches assertion panics per test and prints a summary.' },
+      { sig: 'gc.collect() / gc.heap_size() -> Int / gc.object_count() -> Int', returns: 'Unit / Int', desc: 'Triggers an immediate mark-sweep collection or queries live heap bytes and object count.' },
+    ]}
+  />
+</DocsLayout>

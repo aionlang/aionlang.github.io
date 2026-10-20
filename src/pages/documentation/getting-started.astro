@@ -1,0 +1,222 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+
+const toc = [
+  { id: 'quick-start', label: 'Quick Start' },
+  { id: 'cli-commands', label: 'CLI Commands Reference' },
+  { id: 'interactive-repl', label: 'Interactive REPL (aion repl)' },
+  { id: 'projects-and-deps', label: 'Projects & Dependencies' },
+  { id: 'script-deps', label: 'Single-File Script Dependencies', level: 3 },
+  { id: 'build-cache', label: 'The 4ms Build Cache' },
+  { id: 'environment-variables', label: 'Environment Variables' },
+];
+---
+
+<DocsLayout
+  title="Getting Started & CLI"
+  description="Learn how to install Aion, compile and run scripts, use the interactive REPL, configure projects with aion.project, and manage dependencies."
+  category="Overview"
+  currentSlug="getting-started"
+  toc={toc}
+  prevPage={{ slug: '', title: 'Documentation Hub' }}
+  nextPage={{ slug: 'syntax', title: 'Syntax, Operators & Control Flow' }}
+>
+  <h2 id="quick-start">Quick Start</h2>
+  <p>
+    Aion compiles <code>.aion</code> source files to native executables by emitting textual LLVM IR and invoking <code>clang</code> (version 15 or newer). You do <strong>not</strong> need LLVM development libraries or <code>llvm-config</code> installed.
+  </p>
+
+  <CodeBlock
+    title="hello.aion"
+    code={`#!/usr/bin/env aion
+println("Hello from Aion!")
+name := "world"
+println("Hello, $name!")`}
+    output={`Hello from Aion!
+Hello, world!`}
+  />
+
+  <CodeBlock
+    lang="bash"
+    title="Running and Building"
+    code={`# Run a script directly (cached re-runs take ~4ms)
+aion hello.aion
+
+# Pass command-line arguments (read via args() in Aion)
+aion script.aion arg1 arg2
+
+# Build a standalone native executable
+aion build hello.aion -o hello
+
+# Inspect the generated LLVM IR
+aion emit-ir hello.aion`}
+  />
+
+  <h2 id="cli-commands">CLI Commands Reference</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Command</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>aion</code></td>
+        <td>Run the current project's entry file (from the project root or any subfolder).</td>
+      </tr>
+      <tr>
+        <td><code>aion &lt;file.aion&gt; [args...]</code></td>
+        <td>Compile and run a single file. If inside a project, project dependencies are available.</td>
+      </tr>
+      <tr>
+        <td><code>aion build [file] [-o out]</code></td>
+        <td>Build a standalone native binary (defaults to the project or script name). Accepts <code>-O0</code>..<code>-O3</code> and <code>--no-trace</code>.</td>
+      </tr>
+      <tr>
+        <td><code>aion repl</code></td>
+        <td>Launch the interactive Read-Eval-Print Loop.</td>
+      </tr>
+      <tr>
+        <td><code>aion new &lt;name&gt;</code></td>
+        <td>Scaffold a new project directory with <code>aion.project</code> and <code>main.aion</code>.</td>
+      </tr>
+      <tr>
+        <td><code>aion test</code></td>
+        <td>Run project tests (any test that panics or fails an assertion is reported).</td>
+      </tr>
+      <tr>
+        <td><code>aion fmt [file...]</code></td>
+        <td>Format Aion source files according to standard style rules.</td>
+      </tr>
+      <tr>
+        <td><code>aion add &lt;source&gt;</code></td>
+        <td>Add a git or path dependency to <code>aion.project</code> (or to a script with <code>--script</code>).</td>
+      </tr>
+      <tr>
+        <td><code>aion remove &lt;name&gt;</code></td>
+        <td>Remove a dependency from <code>aion.project</code>.</td>
+      </tr>
+      <tr>
+        <td><code>aion update [name]</code></td>
+        <td>Fetch newer commits for git dependencies and update <code>aion.lock</code>.</td>
+      </tr>
+      <tr>
+        <td><code>aion tree [file]</code></td>
+        <td>Display the resolved dependency tree and pinned git commits.</td>
+      </tr>
+      <tr>
+        <td><code>aion fetch</code></td>
+        <td>Download all declared git dependencies into the cache immediately.</td>
+      </tr>
+      <tr>
+        <td><code>aion clean</code></td>
+        <td>Clear the compiled binary build cache.</td>
+      </tr>
+      <tr>
+        <td><code>aion emit-ir &lt;file.aion&gt;</code></td>
+        <td>Print the generated LLVM IR (<code>.ll</code>) to standard output.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="interactive-repl">Interactive REPL (<code>aion repl</code>)</h2>
+  <p>
+    <code>aion repl</code> provides an interactive prompt where you can type expressions, statements, or declarations (<code>fn</code>, <code>type</code>, <code>enum</code>, <code>interface</code>, <code>synonym</code>, <code>import</code>) and immediately inspect results:
+  </p>
+
+  <CodeBlock
+    lang="text"
+    title="aion repl session"
+    code={`$ aion repl
+Aion 0.3.0 — :help for commands, Ctrl-D to leave
+>>> 1 + 2
+3
+>>> nums := [3, 1, 2]
+>>> nums.add(0)
+>>> nums.sorted()
+[0, 1, 2, 3]
+>>> fn double(n: Int) = n * 2
+>>> nums.map { double(it) }
+[6, 2, 4, 0]`}
+  />
+
+  <ul>
+    <li><strong>Expressions</strong> print their value automatically (e.g., <code>typeOf(nums)</code> prints <code>List&lt;Int&gt;</code>).</li>
+    <li><strong>Declarations</strong> are remembered across the session. Re-entering a function or type with the same signature replaces it; entering a function with different parameter types adds an overload.</li>
+    <li><strong>REPL Commands:</strong> <code>:help</code>, <code>:show</code> (print the accumulated session program), <code>:reset</code> (clear session state), <code>:quit</code> (or <code>Ctrl-D</code>).</li>
+  </ul>
+
+  <h2 id="projects-and-deps">Projects &amp; Dependencies (<code>aion.project</code>)</h2>
+  <p>
+    You only need as much structure as your program requires: a single <code>hello.aion</code> script, a single script with <code>// dep:</code> comments, or a multi-file project with <code>aion.project</code>.
+  </p>
+
+  <CodeBlock
+    lang="toml"
+    title="aion.project"
+    code={`name = "myapp"
+version = "0.1.0"
+entry = "main.aion"           # optional; defaults to main.aion
+lib = "src/lib.aion"          # optional; loaded when another project imports this package
+link = ["sqlite3"]            # optional; system libraries (-lsqlite3)
+c = ["native/glue.c"]         # optional; bundled C files compiled into dependent programs
+
+[dependencies]
+utils = { path = "../utils" }
+http  = { git = "https://github.com/someone/http", tag = "v1.2" }`}
+  />
+
+  <h3 id="script-deps">Single-File Script Dependencies (<code>// dep:</code>)</h3>
+  <p>
+    Standalone scripts can pull in git or local path dependencies without creating a folder or <code>aion.project</code> file by placing <code>// dep:</code> lines at the top of the file (right after an optional <code>#!</code> shebang). Commits are pinned in <code>&lt;script&gt;.aion.lock</code>.
+  </p>
+
+  <CodeBlock
+    title="tool.aion"
+    code={`#!/usr/bin/env aion
+// dep: http  = github.com/someone/http@v1.2
+// dep: utils = ../utils
+import http
+import utils`}
+  />
+
+  <h2 id="build-cache">The 4ms Build Cache</h2>
+  <p>
+    <code>aion file.aion</code> hashes the generated LLVM IR and C sources and stores the compiled executable in the build cache (<code>$AION_CACHE</code>, or <code>~/.cache/aion</code> on Linux/macOS and <code>%LOCALAPPDATA%\aion</code> on Windows). Re-running an unchanged script takes ~4 milliseconds instead of invoking <code>clang</code> again. The cache retains the 128 most recent builds.
+  </p>
+
+  <h2 id="environment-variables">Environment Variables</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>AION_CLANG</code></td>
+        <td>Path or name of the C compiler to invoke instead of searching <code>clang</code> / <code>clang-22..15</code>.</td>
+      </tr>
+      <tr>
+        <td><code>AION_CACHE</code></td>
+        <td>Custom directory for cached builds and cloned git repositories.</td>
+      </tr>
+      <tr>
+        <td><code>AION_NO_CACHE</code></td>
+        <td>Set to <code>1</code> to force recompilation on every run.</td>
+      </tr>
+      <tr>
+        <td><code>AION_GC_STRESS</code></td>
+        <td>Set to <code>1</code> when running a compiled program to trigger garbage collection on every allocation.</td>
+      </tr>
+      <tr>
+        <td><code>AION_LOG</code></td>
+        <td>Default log level for <code>std.log</code> (<code>debug</code>, <code>info</code>, <code>warn</code>, <code>error</code>, <code>off</code>).</td>
+      </tr>
+    </tbody>
+  </table>
+</DocsLayout>

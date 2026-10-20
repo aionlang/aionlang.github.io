@@ -1,0 +1,165 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+
+const toc = [
+  { id: 'modules-and-imports', label: 'Modules & Imports' },
+  { id: 'visibility-rules', label: 'Package Folders & Private Names (_)', level: 3 },
+  { id: 'writing-packages', label: 'Writing & Publishing Git Packages' },
+  { id: 'c-ffi', label: 'Calling C with extern fn' },
+  { id: 'c-type-mapping', label: 'Aion-to-C Type Mapping', level: 3 },
+  { id: 'c-runtime-api', label: 'The C Runtime API (runtime/aion.h)', level: 3 },
+  { id: 'architecture', label: 'Compiler Architecture & Mark-Sweep GC' },
+];
+---
+
+<DocsLayout
+  title="Packages, C FFI & Architecture"
+  description="Learn how Aion resolves modules, how to publish Git packages with bundled C code, how to bind C functions with extern fn and runtime/aion.h, and how the compiler and mark-sweep garbage collector work."
+  category="Ecosystem & Internals"
+  currentSlug="packages-and-ffi"
+  toc={toc}
+  prevPage={{ slug: 'stdlib', title: 'Standard Library Modules (std.*)' }}
+>
+  <h2 id="modules-and-imports">Modules &amp; Imports</h2>
+  <p>
+    Every <code>.aion</code> file is a module, and folders act as packages without needing a <code>package</code> keyword:
+  </p>
+
+  <CodeBlock
+    title="imports.aion"
+    code={`import utils                         // utils.aion beside this file, in lib/, or a dependency
+import utils as u                    // imported under an alias
+import sockets.TcpListener           // imports sockets and brings TcpListener into scope
+from sockets import TcpListener      // brings only TcpListener into scope
+import math                          // standard library module
+import std.math                      // explicit standard library prefix
+
+// Package-relative imports:
+import @shared.config                // @ starts at the current package's root folder
+import .helper                       // . starts in the importing file's own folder
+import ..common.math                 // .. starts in the parent folder`}
+  />
+
+  <h3 id="visibility-rules">Package Folders &amp; Private Names (<code>_</code>)</h3>
+  <ul>
+    <li><strong>Folder Packages:</strong> <code>import shapes</code> loads <code>shapes/lib.aion</code> (or <code>shapes/shapes.aion</code>), and <code>import shapes.circle</code> loads <code>shapes/circle.aion</code>.</li>
+    <li><strong>Module Initialization:</strong> Each imported module's top-level statements run once in dependency order before the main script starts. Circular imports are rejected at compile time.</li>
+    <li><strong>Private Declarations (<code>_</code>):</strong> Everything a module defines is public by default, except top-level names starting with an underscore (<code>fn _helper()</code>, <code>type _Node</code>, <code>_cache := ...</code>), which are private to their file.</li>
+  </ul>
+
+  <h2 id="writing-packages">Writing &amp; Publishing Git Packages</h2>
+  <p>
+    In Aion, a package is simply a Git repository containing an <code>aion.project</code> file and a library entry point (<code>lib.aion</code> by default). Publishing a release is just <code>git tag v1.0.0 &amp;&amp; git push --tags</code>.
+  </p>
+
+  <CodeBlock
+    lang="toml"
+    title="slugify/aion.project"
+    code={`name = "slugify"
+version = "1.0.0"
+lib = "lib.aion"
+c = ["native/fast.c"]       # optional: C files compiled into dependent programs
+link = ["m"]                # optional: system libraries (-lm)`}
+  />
+
+  <h2 id="c-ffi">Calling C with <code>extern fn</code></h2>
+  <p>
+    An <code>extern fn</code> declaration binds a C function directly in a single line — no glue generators or registration tables required. You can bind standard C library functions right in your script or bundle custom C files in a package or stdlib module:
+  </p>
+
+  <CodeBlock
+    title="c_ffi.aion"
+    code={`extern fn llabs(n: Int) -> Int                      // C symbol: llabs
+extern fn c_abs(x: Float) -> Float = "fabs"         // custom Aion name for C's fabs
+extern fn String.length() -> Int = "aion_strings_length"  // receiver passed as 1st C arg
+
+println(llabs(-42), c_abs(-3.5))`}
+    output={`42 3.5`}
+  />
+
+  <h3 id="c-type-mapping">Aion-to-C Type Mapping</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Aion Type</th>
+        <th>C ABI Type</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Int</code> / <code>Char</code></td>
+        <td><code>int64_t</code></td>
+        <td>Always 64-bit signed (<code>Char</code> is the Unicode code point).</td>
+      </tr>
+      <tr>
+        <td><code>Int32</code></td>
+        <td><code>int32_t</code></td>
+        <td>32-bit signed C integer.</td>
+      </tr>
+      <tr>
+        <td><code>Byte</code></td>
+        <td><code>uint8_t</code></td>
+        <td>8-bit unsigned C byte.</td>
+      </tr>
+      <tr>
+        <td><code>Float</code></td>
+        <td><code>double</code></td>
+        <td>64-bit IEEE-754 float (<code>Int</code> arguments widen automatically).</td>
+      </tr>
+      <tr>
+        <td><code>Bool</code></td>
+        <td><code>bool</code> (<code>&lt;stdbool.h&gt;</code>)</td>
+        <td>Passed with LLVM <code>zeroext</code> matching C ABI.</td>
+      </tr>
+      <tr>
+        <td><code>String</code> / <code>String?</code></td>
+        <td><code>const char *</code></td>
+        <td>NUL-terminated UTF-8. <code>NULL</code> maps to <code>null</code> in <code>String?</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Bytes</code> / <code>Bytes?</code></td>
+        <td><code>void *</code></td>
+        <td>Inspect with <code>aion_bytes_size(b)</code> and <code>aion_bytes_data(b)</code>.</td>
+      </tr>
+      <tr>
+        <td><code>Unit</code> (omitted <code>-&gt;</code>)</td>
+        <td><code>void</code></td>
+        <td>Function returns nothing.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="c-runtime-api">The C Runtime API (<code>runtime/aion.h</code>)</h3>
+  <p>
+    C files bundled in a package or stdlib module can <code>#include "aion.h"</code> to allocate GC-managed strings and byte buffers or yield to the cooperative task scheduler while waiting on file descriptors:
+  </p>
+
+  <CodeBlock
+    lang="c"
+    title="runtime/aion.h"
+    code={`const char *aion_string(const char *s);              // copy NUL-terminated string into GC heap
+const char *aion_string_n(const char *s, size_t n);  // copy first n bytes into GC heap
+void aion_panic(const char *msg);                    // unwind / print "[aion] panic: msg"
+
+void *aion_bytes_new(int64_t len);                   // allocate zero-filled GC Bytes
+int64_t aion_bytes_size(const void *bytes);          // byte length
+uint8_t *aion_bytes_data(void *bytes);               // raw mutable byte pointer
+
+int aion_wait_fd(int fd, int events, int64_t ms);    // park current task until fd is ready (POLLIN/POLLOUT)`}
+  />
+
+  <h2 id="architecture">Compiler Architecture &amp; Mark-Sweep Garbage Collector</h2>
+  <p>
+    Aion's compiler is written in Rust and cleanly separates semantic analysis from code generation:
+  </p>
+  <ol>
+    <li><strong>Lexer &amp; Parser (<code>src/syntax/</code>):</strong> Logos-based tokenizer that tracks preceding newlines and a recursive-descent parser with precedence climbing. Desugars <code>when</code> and string interpolation early.</li>
+    <li><strong>Loader &amp; Projects (<code>src/loader.rs</code>, <code>src/project.rs</code>):</strong> Resolves local files, git packages (pinned in <code>aion.lock</code>), and embedded stdlib modules in topological order.</li>
+    <li><strong>Semantic Analysis &amp; Monomorphization (<code>src/sema/</code>):</strong> Resolves names, infers return and global types on demand, performs flow-sensitive smart-cast narrowing, and monomorphizes generic types and functions into a fully typed High-Level IR (<code>HIR</code>).</li>
+    <li><strong>LLVM IR Codegen (<code>src/codegen.rs</code>):</strong> Lowers HIR to textual LLVM IR (<code>program.ll</code>) using opaque pointers (<code>ptr</code>), explicit shadow-stack GC frames, and dispatch tables for interfaces and <code>open</code> virtual methods.</li>
+    <li><strong>Precise Mark-Sweep GC (<code>runtime/core.c</code>):</strong> Every heap object has a 24-byte header <code>{'{'}next, size, flags, ptr_mask{'}'}</code> where bit <em>i</em> of <code>ptr_mask</code> marks whether 8-byte slot <em>i</em> is a pointer. Roots are tracked deterministically via an explicit machine-stack shadow frame list (<code>aion_frame_top</code>) and module globals, making collection exact at every Clang optimization level (<code>-O2</code>).</li>
+  </ol>
+</DocsLayout>

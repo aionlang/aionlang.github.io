@@ -1,0 +1,215 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+import MethodTable from '../../components/MethodTable.astro';
+
+const toc = [
+  { id: 'defer-cleanup', label: 'Block Cleanup (defer)' },
+  { id: 'panics-and-try', label: 'Panics, Stack Traces & try / catch' },
+  { id: 'result-type', label: 'Errors as Values (Result<T, E> & ?)' },
+  { id: 'tasks-and-channels', label: 'Cooperative Tasks (launch & async)' },
+  { id: 'channels', label: 'Typed Channels (Channel<T>)', level: 3 },
+  { id: 'select-multiplexing', label: 'Multiplexing Channels (select)', level: 3 },
+  { id: 'os-threads', label: 'OS Threads, Mutex & AtomicInt' },
+];
+
+const resultMethods = [
+  { sig: 'Ok<T, E>(value: T) -> Result<T, E>', returns: 'Result<T, E>', desc: 'Constructs a successful Result holding value.' },
+  { sig: 'Err<T, E>(error: E) -> Result<T, E>', returns: 'Result<T, E>', desc: 'Constructs a failed Result holding error.' },
+  { sig: 'runCatching<T>(action: () -> T) -> Result<T, String>', returns: 'Result<T, String>', desc: 'Runs action() and catches any panic into Err(message).' },
+  { sig: 'r? (postfix operator)', returns: 'T', desc: 'Unwraps Ok(v) to v, or returns Err(e) early from the enclosing function.' },
+  { sig: 'Result.isOk() / Result.isErr()', returns: 'Bool', desc: 'Checks whether the result is Ok or Err.' },
+  { sig: 'Result.unwrap() -> T', returns: 'T', desc: 'Returns the Ok value, or panics if Err.' },
+  { sig: 'Result.unwrapOr(fallback: T) -> T', returns: 'T', desc: 'Returns the Ok value, or fallback if Err.' },
+  { sig: 'Result.unwrapErr() -> E', returns: 'E', desc: 'Returns the Err value, or panics if Ok.' },
+  { sig: 'Result.getOrNull() -> T? / Result.errorOrNull() -> E?', returns: 'T? / E?', desc: 'Returns the value or error as a nullable optional.' },
+  { sig: 'Result.map<R>(f: (T) -> R) -> Result<R, E>', returns: 'Result<R, E>', desc: 'Transforms the Ok value while leaving Err untouched.' },
+  { sig: 'Result.mapError<F>(f: (E) -> F) -> Result<T, F>', returns: 'Result<T, F>', desc: 'Transforms the Err value while leaving Ok untouched.' },
+  { sig: 'Result.andThen<R>(next: (T) -> Result<R, E>) -> Result<R, E>', returns: 'Result<R, E>', desc: 'Chains another Result-returning operation on Ok.' },
+];
+
+const concurrencyMethods = [
+  { sig: 'launch(body: () -> Unit) -> Job', returns: 'Job', desc: 'Spawns a cooperative task running body concurrently. Job has .join() and .isDone().' },
+  { sig: 'async<T>(body: () -> T) -> Task<T>', returns: 'Task<T>', desc: 'Spawns a cooperative task that computes a T. Task<T> has .await() -> T and .isDone().' },
+  { sig: 'sleep(ms: Int)', returns: 'Unit', desc: 'Pauses the current task for ms milliseconds while other tasks continue running.' },
+  { sig: 'yield()', returns: 'Unit', desc: 'Voluntarily yields execution to other runnable tasks on the current thread.' },
+  { sig: 'waitAll()', returns: 'Unit', desc: 'Waits until all tasks spawned on the current thread have finished.' },
+  { sig: 'Channel<T>(capacity: Int = 0)', returns: 'Channel<T>', desc: 'Creates an unbuffered (rendezvous) or buffered channel of capacity elements.' },
+  { sig: 'Channel.send(value: T)', returns: 'Unit', desc: 'Sends a value into the channel, parking the task if full (or until a receiver takes it when capacity == 0).' },
+  { sig: 'Channel.receive() -> T? / Channel.tryReceive() -> T?', returns: 'T?', desc: 'receive() waits for the next item (returns null when closed & empty); tryReceive() returns immediately.' },
+  { sig: 'Channel.close() / Channel.isClosed() / Channel.size()', returns: 'Unit / Bool / Int', desc: 'Closes the channel, checks closed state, or returns queued item count.' },
+  { sig: 'Channel.forEach(action: (T) -> Unit) / Channel.drain() -> List<T>', returns: 'Unit / List<T>', desc: 'Consumes items from the channel until it is closed and empty.' },
+  { sig: 'select(vararg cases: SelectCase) -> Int', returns: 'Int', desc: 'Waits for the first ready channel operation: ch.onReceive { v -> ... }, ch.onSend(v) { ... }, ch.onClose { ... }, onTimeout(ms) { ... }, or onDefault { ... }.' },
+  { sig: 'thread(body: () -> Unit) -> Thread', returns: 'Thread', desc: 'Starts a parallel OS thread. Thread has .join() and .isDone().' },
+  { sig: 'compute<T>(body: () -> T) -> Task<T>', returns: 'Task<T>', desc: 'Runs body on a parallel OS thread and returns a Task<T> whose .await() retrieves the result.' },
+  { sig: 'cpuCount() -> Int / threadId() -> Int', returns: 'Int', desc: 'Number of logical processors available, and current OS thread ID (0 for main thread).' },
+  { sig: 'Mutex() -> .lock(), .tryLock(), .unlock(), .withLock { ... }', returns: 'Mutex', desc: 'Mutual exclusion lock safe across OS threads and tasks.' },
+  { sig: 'AtomicInt(initial: Int = 0) -> .get(), .set(v), .add(n), .compareAndSet(exp, upd)', returns: 'AtomicInt', desc: 'Lock-free / monitor-synchronized integer shared across OS threads.' },
+];
+---
+
+<DocsLayout
+  title="Errors, Tasks, Channels & Threads"
+  description="Resource cleanup with defer, panic recovery with try/catch, typed error handling with Result<T, E> and the ? operator, cooperative tasks, channels, select, and multi-core OS threads."
+  category="Language Reference"
+  currentSlug="errors-and-concurrency"
+  toc={toc}
+  prevPage={{ slug: 'types', title: 'Types, Generics & Interfaces' }}
+  nextPage={{ slug: 'prelude-methods', title: 'Prelude & Built-in Methods' }}
+>
+  <h2 id="defer-cleanup">Block-Scoped Cleanup (<code>defer</code>)</h2>
+  <p>
+    <code>defer stmt</code> or <code>defer {'{'} ... {'}'}</code> schedules code to run when the <strong>enclosing block</strong> exits — whether by reaching the end of the block, <code>return</code>, <code>break</code>, <code>continue</code>, or a runtime panic. Multiple <code>defer</code> statements in the same block execute in reverse (LIFO) order.
+  </p>
+
+  <CodeBlock
+    title="defer_demo.aion"
+    code={`fn work(n: Int) -> Int {
+    println("start", n)
+    defer println("cleanup 1 (runs last)")
+    defer println("cleanup 2 (runs first)")
+    if n > 5 {
+        defer println("leaving if-block")
+        return n * 2
+    }
+    return n
+}
+println("result =", work(9))`}
+    output={`start 9
+leaving if-block
+cleanup 2 (runs first)
+cleanup 1 (runs last)
+result = 18`}
+  />
+
+  <Callout type="note" title="Deferred Closures">
+    Unlike Go, a <code>defer</code> block in Aion is a true closure: it observes the current values of local variables at the moment the deferred code actually runs.
+  </Callout>
+
+  <h2 id="panics-and-try">Panics, Stack Traces &amp; <code>try</code> / <code>catch</code></h2>
+  <p>
+    Unrecoverable errors — calling <code>panic("msg")</code>, division by zero, out-of-bounds indexing, missing map key, or <code>!!</code> on <code>null</code> — unwind pending <code>defer</code> blocks and print a stack trace unless caught by a <code>try {'{'} ... {'}'} catch e {'{'} ... {'}'}</code> expression:
+  </p>
+
+  <CodeBlock
+    title="try_catch.aion"
+    code={`fn mustParse(text: String) -> Int =
+    text.toIntOrNull() ?: panic("not a number: $text")
+
+a := try { mustParse("42") } catch e { -1 }
+b := try { mustParse("bad") } catch e {
+    println("caught:", e)
+    -1
+}
+println(a, b)`}
+    output={`caught: not a number: bad
+42 -1`}
+  />
+
+  <h2 id="result-type">Errors as Values: <code>Result&lt;T, E&gt;</code> &amp; <code>?</code> Operator</h2>
+  <p>
+    For expected errors, return <code>Result&lt;T, E&gt;</code> constructed with <code>Ok(value)</code> or <code>Err(error)</code>. Inside any function that returns a <code>Result</code> with a matching error type <code>E</code>, the postfix <code>?</code> operator unwraps an <code>Ok(v)</code> to <code>v</code> or immediately returns the <code>Err(e)</code> from the enclosing function:
+  </p>
+
+  <CodeBlock
+    title="results.aion"
+    code={`fn parseAge(text: String) -> Result<Int, String> {
+    age := text.trim().toIntOrNull() ?: return Err("'$text' is not a number")
+    if age < 0 || age > 150 { return Err("$age is out of range") }
+    return Ok(age)
+}
+
+data type Person(name: String, age: Int)
+
+fn parsePerson(line: String) -> Result<Person, String> {
+    parts := line.split(",")
+    if parts.size() != 2 { return Err("expected 'name,age'") }
+    // parseAge(parts[1])? unwraps Int or returns Err early:
+    return Ok(Person(parts[0].trim(), parseAge(parts[1])?))
+}
+
+println(parsePerson("Ada, 36"))
+println(parsePerson("Bob, xyz"))
+println(parseAge("40").map { it + 1 }.unwrapOr(0))`}
+    output={`Ok(Person(name=Ada, age=36))
+Err(' xyz' is not a number)
+41`}
+  />
+
+  <MethodTable title="Result<T, E> API" badge="Prelude" methods={resultMethods} />
+
+  <h2 id="tasks-and-channels">Cooperative Tasks (<code>launch</code> &amp; <code>async</code>)</h2>
+  <p>
+    Tasks run concurrently on lightweight 256 KiB stacks within a thread. Task switching is cooperative and happens only at explicit wait points (<code>join</code>, <code>await</code>, channel send/receive, <code>sleep</code>, network I/O via <code>aion_wait_fd</code>, or <code>yield()</code>), so tasks on the same thread can share variables safely without locks.
+  </p>
+
+  <CodeBlock
+    title="tasks.aion"
+    code={`squares := List<Task<Int>>()
+for i in 1..=4 {
+    squares.add(async { i * i })
+}
+total := 0
+for t in squares { total += t.await() }
+println("sum of squares =", total)`}
+    output={`sum of squares = 30`}
+  />
+
+  <h3 id="channels">Typed Channels (<code>Channel&lt;T&gt;</code>)</h3>
+  <p>
+    <code>Channel&lt;T&gt;()</code> creates an unbuffered rendezvous channel; <code>Channel&lt;T&gt;(capacity)</code> buffers up to <code>capacity</code> items. If all tasks are parked waiting on channels that can never progress, the runtime detects the deadlock immediately and panics rather than hanging.
+  </p>
+
+  <h3 id="select-multiplexing">Multiplexing Channels with <code>select</code></h3>
+  <p>
+    <code>select(...)</code> waits until one of several channel operations can proceed, runs its handler block, and returns the 0-based index of the chosen case:
+  </p>
+
+  <CodeBlock
+    title="select_demo.aion"
+    code={`jobs := Channel<Int>()
+quit := Channel<Int>()
+
+launch {
+    for n in 1..=3 { jobs.send(n) }
+    quit.close()
+}
+
+sum := 0
+running := true
+while running {
+    select(
+        jobs.onReceive { sum += it },
+        quit.onClose { running = false },
+        onTimeout(1000) { running = false }
+    )
+}
+println("sum =", sum)`}
+    output={`sum = 6`}
+  />
+
+  <h2 id="os-threads">Parallel OS Threads, <code>Mutex</code> &amp; <code>AtomicInt</code></h2>
+  <p>
+    For CPU-bound parallelism across multiple cores, use <code>thread {'{'} ... {'}'}</code> (returns <code>Thread</code>) or <code>compute {'{'} ... {'}'}</code> (returns <code>Task&lt;T&gt;</code>). Threads share the garbage-collected heap; protect shared mutable data with <code>Mutex</code>, <code>AtomicInt</code>, or thread-safe <code>Channel&lt;T&gt;</code>s.
+  </p>
+
+  <CodeBlock
+    title="threads.aion"
+    code={`hits := AtomicInt()
+log := List<String>()
+lock := Mutex()
+
+workers := (1..=4).map { w ->
+    thread {
+        for i in 0..1000 { hits.add(1) }
+        lock.withLock { log.add("worker $w done") }
+    }
+}
+for w in workers { w.join() }
+println(hits.get(), log.size())`}
+    output={`4000 4`}
+  />
+
+  <MethodTable title="Tasks, Channels, Select & Threads API" badge="Prelude" methods={concurrencyMethods} />
+</DocsLayout>

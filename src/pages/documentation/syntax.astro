@@ -1,0 +1,263 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+
+const toc = [
+  { id: 'scripts-and-structure', label: 'Scripts & Program Structure' },
+  { id: 'variables-and-val', label: 'Variables (:=) & Read-Only (val)' },
+  { id: 'operators', label: 'Operators & Precedence' },
+  { id: 'bitwise-and-literals', label: 'Number Literals & Bitwise Ops', level: 3 },
+  { id: 'control-flow', label: 'Control Flow (if, when, loops)' },
+  { id: 'ranges', label: 'Ranges (.., ..=, step, downTo)', level: 3 },
+  { id: 'strings-and-chars', label: 'Strings, Interpolation & Characters' },
+  { id: 'line-breaks', label: 'Line Breaks & Statement Rules' },
+];
+---
+
+<DocsLayout
+  title="Syntax, Operators & Control Flow"
+  description="Complete syntax guide for Aion: scripts, variable declarations, read-only val bindings, operator precedence, pattern matching with when, ranges, strings, and newline rules."
+  category="Language Reference"
+  currentSlug="syntax"
+  toc={toc}
+  prevPage={{ slug: 'getting-started', title: 'Getting Started & CLI' }}
+  nextPage={{ slug: 'functions', title: 'Functions, Lambdas & Closures' }}
+>
+  <h2 id="scripts-and-structure">Scripts &amp; Program Structure</h2>
+  <p>
+    An Aion source file is a sequence of statements executed from top to bottom. There is no requirement to write <code>fn main()</code>, and statements do not use semicolons.
+  </p>
+  <ul>
+    <li>If <code>fn main()</code> is declared, it runs <strong>after</strong> all top-level statements finish. <code>fn main() -&gt; Int</code> can return an exit status code.</li>
+    <li>A first line starting with <code>#!</code> (such as <code>#!/usr/bin/env aion</code>) is ignored so files can be run directly as executable scripts.</li>
+    <li>Functions and types can be declared anywhere at the top level and called before their textual definition; top-level variables must be declared above the top-level statements that read them.</li>
+  </ul>
+
+  <CodeBlock
+    title="script.aion"
+    code={`println("Hello from Aion!")
+name := "world"
+println("Hello, $name!")`}
+    output={`Hello from Aion!
+Hello, world!`}
+  />
+
+  <h2 id="variables-and-val">Variables (<code>:=</code>) &amp; Read-Only Bindings (<code>val</code>)</h2>
+  <p>
+    Variables are declared with <code>:=</code> (type inferred), <code>name: Type = value</code> (explicit type), or <code>name: Type</code> (starts at the type's default zero value). Compound assignments <code>+=</code>, <code>-=</code>, <code>*=</code>, and <code>/=</code> are supported.
+  </p>
+
+  <CodeBlock
+    title="variables.aion"
+    code={`a := 12            // Int inferred
+b: Int = 12        // explicit type (x: T := v is also accepted)
+c: Float           // declared without initializer -> starts at 0.0
+a = 5              // reassignment
+a += 1             // 6
+println(a, b, c)
+
+// Module-level variables: top-level variables are readable and writable by functions
+count := 0
+fn bump() { count += 1 }
+bump()
+bump()
+println("count =", count)`}
+    output={`6 12 0
+count = 2`}
+  />
+
+  <h3>Read-Only Variables: <code>val</code></h3>
+  <p>
+    <code>val</code> declares a binding that cannot be reassigned (a constant). It works for local and top-level variables, accepts an optional type annotation, and cannot be mutated by closures.
+  </p>
+
+  <CodeBlock
+    title="val_constants.aion"
+    code={`val limit = 10
+val greeting: String = "hello"
+total := 0
+for i in 0..limit { total += i }
+println(total, greeting)
+
+// Only the variable binding is fixed; a mutable collection inside a val can still grow:
+val names = ["a"]
+names.add("b")
+println(names)`}
+    output={`45 hello
+[a, b]`}
+  />
+
+  <h2 id="operators">Operators &amp; Precedence</h2>
+  <p>
+    Listed from <strong>loosest</strong> to <strong>tightest</strong> binding:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Precedence</th>
+        <th>Operators</th>
+        <th>Operands &amp; Behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1 (Loosest)</td>
+        <td><code>c ? a : b</code></td>
+        <td>Right-associative conditional ternary expression (<code>Bool</code> condition; branches must unify or one may be <code>null</code>).</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>a..b</code>, <code>a..=b</code>, <code>step</code>, <code>downTo</code></td>
+        <td><code>Int</code> range construction (exclusive <code>..</code>, inclusive <code>..=</code>, stride <code>step</code>, descending <code>downTo</code>).</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>||</code></td>
+        <td>Short-circuit logical OR on <code>Bool</code>.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>&amp;&amp;</code></td>
+        <td>Short-circuit logical AND on <code>Bool</code>.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>==</code>, <code>!=</code></td>
+        <td>Value equality on primitives, <code>String</code>, <code>Bytes</code>, tuples, and <code>data type</code> (or types with <code>equals</code>); identity on plain objects.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>in</code>, <code>is</code>, <code>!is</code></td>
+        <td>Relational comparison (or <code>compareTo</code>), range/collection membership <code>x in c</code>, runtime type check <code>x is T</code>.</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>?:</code></td>
+        <td>Elvis null-coalescing fallback (<code>opt ?: default</code> or early exit <code>opt ?: return v</code>).</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><code>+</code>, <code>-</code></td>
+        <td>Numeric addition/subtraction, <code>String</code> concatenation, <code>List + List</code>, <code>Bytes + Bytes</code>, or <code>.plus(b)</code> / <code>.minus(b)</code>.</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><code>*</code>, <code>/</code>, <code>%</code></td>
+        <td>Numeric multiplication/division/remainder, <code>String * n</code> / <code>Char * n</code> repetition, or <code>.times(b)</code> / <code>.div(b)</code> / <code>.rem(b)</code>.</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td><code>-x</code>, <code>!x</code>, <code>as</code>, <code>as?</code></td>
+        <td>Unary negation (or <code>.unaryMinus()</code>), logical NOT, checked cast <code>x as T</code>, safe cast <code>x as? T</code>.</td>
+      </tr>
+      <tr>
+        <td>11 (Tightest)</td>
+        <td><code>!!</code>, <code>?</code>, <code>?.</code>, <code>.</code>, <code>()</code>, <code>[]</code></td>
+        <td>Non-null unwrap <code>x!!</code>, <code>Result</code> unwrap <code>r?</code>, safe member access <code>x?.f</code>, member access, call, index/slice.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 id="bitwise-and-literals">Number Literals &amp; Bitwise Methods</h3>
+  <p>
+    Integers can be written in decimal, hexadecimal (<code>0xFF</code>), binary (<code>0b1010</code>), or octal (<code>0o17</code>), with underscores allowed between digits (<code>1_000_000</code>). Floats accept scientific notation (<code>1.5e-3</code>). Bitwise operations are methods on <code>Int</code>, <code>Int32</code>, and <code>Byte</code>:
+  </p>
+  <ul>
+    <li><code>a.and(b)</code>, <code>a.or(b)</code>, <code>a.xor(b)</code>, <code>a.inv()</code> (bitwise NOT)</li>
+    <li><code>a.shl(n)</code> (shift left), <code>a.shr(n)</code> (arithmetic sign-preserving shift right), <code>a.ushr(n)</code> (logical zero-fill shift right)</li>
+  </ul>
+
+  <h2 id="control-flow">Control Flow (<code>if</code>, <code>when</code>, <code>while</code>, <code>for</code>)</h2>
+  <p>
+    Both <code>if</code> and <code>when</code> are expressions: the value of a branch is its last expression. When used as a value, an <code>else</code> branch is required (unless <code>when</code> exhaustively covers an <code>enum</code>).
+  </p>
+
+  <CodeBlock
+    title="control_flow.aion"
+    code={`n := 7
+kind := if n % 2 == 0 { "even" } else { "odd" }
+
+// when with a subject: matches values, comma-lists, in-ranges, or is-Type
+size := when n {
+    0 -> "zero"
+    1, 2, 3 -> "small"
+    in 4..10 -> "medium"
+    else -> "large"
+}
+
+// when without a subject acts as a multi-way condition chain
+sign := when {
+    n < 0 -> "negative"
+    n == 0 -> "zero"
+    else -> "positive"
+}
+println(kind, size, sign)`}
+    output={`odd medium positive`}
+  />
+
+  <h3 id="ranges">Ranges (<code>..</code>, <code>..=</code>, <code>step</code>, <code>downTo</code>) &amp; Loops</h3>
+  <p>
+    <code>a..b</code> excludes <code>b</code>; <code>a..=b</code> includes <code>b</code>. Ranges are first-class values of type <code>Range</code> and support <code>step</code>, <code>downTo</code>, <code>in</code> membership tests, and functional methods (<code>map</code>, <code>filter</code>, <code>sum</code>, <code>reversed</code>, <code>toList</code>). Inside a <code>for i in a..b</code> header, the compiler emits a direct counting loop with zero allocation.
+  </p>
+
+  <CodeBlock
+    title="ranges.aion"
+    code={`r := 1..=5
+println(r, r.size(), 3 in r, 9 in r)
+println((1..=10).map { it * it })
+println((1..=100).sum(), (1..=5).reversed())
+
+for i in 0..=20 step 5 { print(i, "") }
+println()
+for i in 10 downTo 0 step 4 { print(i, "") }
+println()`}
+    output={`[1, 2, 3, 4, 5] 5 true false
+[1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+5050 [5, 4, 3, 2, 1]
+0 5 10 15 20 
+10 6 2`}
+  />
+
+  <h2 id="strings-and-chars">Strings, Interpolation &amp; Characters</h2>
+  <ul>
+    <li><strong>Interpolation:</strong> <code>$name</code> interpolates a variable and <code>${'{'}expr{'}'}</code> evaluates any expression (including nested string literals). Any type converts to text automatically inside <code>${'{'}...{'}'}</code>.</li>
+    <li><strong>Triple-Quoted Strings (<code>"""..."""</code>):</strong> Span multiple lines, allow unescaped quotes, drop an immediate newline after the opening <code>"""</code>, and still support <code>$name</code> interpolation.</li>
+    <li><strong>Raw Strings (<code>r"..."</code> and <code>r"""..."""</code>):</strong> Keep backslashes <code>\</code> and dollar signs <code>$</code> literal — ideal for regular expressions, Windows paths, and JSON payloads.</li>
+    <li><strong>Unicode Escapes:</strong> <code>\u{'{'}1F600{'}'}</code> embeds any Unicode code point in a <code>String</code> or <code>Char</code>.</li>
+    <li><strong>Characters (<code>Char</code>):</strong> Single-quoted Unicode code points (<code>'a'</code>, <code>'é'</code>). Supports code-point arithmetic (<code>'a' + 2 == 'c'</code>, <code>'e' - 'a' == 4</code>), character ranges (<code>for ch in 'a'..='e'</code>), and repetition (<code>'-' * 5 == "-----"</code>).</li>
+  </ul>
+
+  <CodeBlock
+    title="strings_chars.aion"
+    code={`name := "Aion"
+println("Hello, $name! 3 + 1 = \${3 + 1}")
+println("""He said "hi" to $name""")
+println(r"""{"path": "C:\temp\n", "cost": "$5"}""")
+
+c := 'a'
+println(c, c + 2, 'e' - 'a', '7'.isDigit(), '7'.digitValue())
+println("Caf\\u{e9}", '-' * 4)`}
+    output={`Hello, Aion! 3 + 1 = 4
+He said "hi" to Aion
+{"path": "C:\temp\n", "cost": "$5"}
+a c 4 true 7
+Café ----`}
+  />
+
+  <h2 id="line-breaks">Line Breaks &amp; Statement Continuation Rules</h2>
+  <p>
+    A newline ends a statement automatically, <strong>except</strong> in the following cases where the expression continues onto the next line:
+  </p>
+  <ol>
+    <li>Inside open parentheses <code>(...)</code> or brackets <code>[...]</code>.</li>
+    <li>When a line ends with a binary operator (e.g. <code>total = a +</code> followed by a newline).</li>
+    <li>When the next line <strong>starts</strong> with <code>.</code>, <code>?.</code>, <code>?:</code>, <code>&amp;&amp;</code>, or <code>||</code> (enabling multi-line fluent method chains and boolean conditions).</li>
+    <li>When <code>else</code> starts a new line after a closing brace <code>{'}'}</code>.</li>
+  </ol>
+
+  <Callout type="note" title="No Ambiguous Calls Across Lines">
+    A <code>(</code> or <code>{'{'}</code> at the start of a new line always begins a new statement — it is never parsed as a function call or trailing lambda for the previous line.
+  </Callout>
+</DocsLayout>

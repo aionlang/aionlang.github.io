@@ -1,0 +1,210 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import Callout from '../../components/Callout.astro';
+
+const toc = [
+  { id: 'declaring-functions', label: 'Declaring Functions' },
+  { id: 'defaults-and-named', label: 'Defaults, Varargs & Spread (*xs)' },
+  { id: 'nested-functions', label: 'Nested & Recursive Functions', level: 3 },
+  { id: 'lambdas-and-closures', label: 'Function Values, Lambdas & Closures' },
+  { id: 'printing-functions', label: 'Printing Function Values', level: 3 },
+  { id: 'overloading', label: 'Function & Method Overloading' },
+  { id: 'extension-methods', label: 'Extension Methods on Built-in Types' },
+];
+---
+
+<DocsLayout
+  title="Functions, Lambdas & Closures"
+  description="Complete guide to Aion functions: expression bodies, default and named arguments, varargs and list spreading, lexical closures, overloading, and extension methods."
+  category="Language Reference"
+  currentSlug="functions"
+  toc={toc}
+  prevPage={{ slug: 'syntax', title: 'Syntax, Operators & Control Flow' }}
+  nextPage={{ slug: 'types', title: 'Types, Generics & Interfaces' }}
+>
+  <h2 id="declaring-functions">Declaring Functions</h2>
+  <p>
+    Functions are declared with <code>fn</code>. Parameters always specify their type. With an expression body (<code>= expr</code>), the return type is inferred automatically; with a block body (<code>{'{'} ... {'}'}</code>), omit <code>-&gt; Type</code> if the function returns nothing (<code>Unit</code>), or specify <code>-&gt; Type</code> to return a value.
+  </p>
+
+  <CodeBlock
+    title="functions.aion"
+    code={`fn add(a: Int, b: Int) -> Int {
+    return a + b
+}
+
+fn double(x: Int) = x * 2                       // one-liner; return type Int inferred
+fn greet(name: String, greeting: String = "Hello") = "$greeting, $name!"
+
+println(add(1, 2), double(21))
+println(greet("Ann"))                           // default argument used
+println(greet("Bob", greeting: "Hi"))           // named argument
+println(greet(greeting: "Yo", name: "Cy"))      // named arguments in any order`}
+    output={`3 42
+Hello, Ann!
+Hi, Bob!
+Yo, Cy!`}
+  />
+
+  <ul>
+    <li>After the first named argument in a call, all subsequent arguments must also be named. Arguments are evaluated in the order they are written at the call site.</li>
+    <li>A recursive function (or pair of mutually recursive functions) requires an explicit <code>-&gt; ReturnType</code> on at least one of them.</li>
+    <li><code>Unit</code> represents "no value" and is used in function type signatures such as <code>(Int) -&gt; Unit</code>.</li>
+  </ul>
+
+  <h2 id="defaults-and-named">Default Expressions, <code>vararg</code> &amp; Spread (<code>*xs</code>)</h2>
+  <ul>
+    <li><strong>Dynamic Defaults:</strong> Default parameter values are evaluated fresh on each call and can reference earlier parameters (or object fields inside methods). A default of <code>[]</code> creates a brand-new list on every call.</li>
+    <li><strong>Variadic Parameters (<code>vararg</code>):</strong> The last parameter of a function, method, or custom <code>constructor</code> may be marked <code>vararg name: T</code>. Inside the body, it is a <code>List&lt;T&gt;</code>.</li>
+    <li><strong>List Spread (<code>*xs</code>):</strong> Prefix a list with <code>*</code> to unpack its elements into a <code>vararg</code> call or into another list literal <code>[0, *xs, 40]</code>.</li>
+  </ul>
+
+  <CodeBlock
+    title="defaults_varargs.aion"
+    code={`// Default parameters can use earlier parameters:
+fn box(w: Int, h: Int = w, area: Int = w * h) = "$w x $h = $area"
+println(box(3), "|", box(3, 4), "|", box(2, area: 7))
+
+// Fresh list created on every call:
+fn collect(item: Int, into: List<Int> = []) -> List<Int> {
+    into.add(item)
+    return into
+}
+println(collect(1), collect(2))
+
+// vararg and * spread operator:
+fn sum(vararg xs: Int) = xs.fold(0) { acc, x -> acc + x }
+nums := [10, 20, 30]
+println(sum(), sum(1, 2, 3), sum(*nums), sum(1, *nums))
+println([0, *nums, 40])`}
+    output={`3 x 3 = 9 | 3 x 4 = 12 | 2 x 2 = 7
+[1] [2]
+0 6 60 61
+[0, 10, 20, 30, 40]`}
+  />
+
+  <h3 id="nested-functions">Nested &amp; Recursive Local Functions</h3>
+  <p>
+    Functions declared inside another function are closures: they can read and mutate local variables in their enclosing scope, call themselves recursively (when <code>-&gt; Type</code> is written), and be returned as values.
+  </p>
+
+  <CodeBlock
+    title="nested_fn.aion"
+    code={`fn counter() -> () -> Int {
+    n := 0
+    fn next() -> Int {
+        n += 1
+        return n
+    }
+    return next
+}
+c := counter()
+c()
+println(c())   // 2`}
+    output={`2`}
+  />
+
+  <h2 id="lambdas-and-closures">Function Values, Lambdas &amp; Closures</h2>
+  <p>
+    Function types are written <code>(Param1, Param2) -&gt; ReturnType</code>. Lambdas are written <code>{'{'} params -&gt; body {'}'}</code>, where the last expression is the return value:
+  </p>
+  <ul>
+    <li><strong>Implicit <code>it</code>:</strong> When a single-parameter lambda is passed where a function type is expected, you can omit <code>x -&gt;</code> and refer to the parameter as <code>it</code> (e.g. <code>xs.map {'{'} it * 2 {'}'}</code>).</li>
+    <li><strong>Trailing Lambda Syntax:</strong> When the last argument of a call is a lambda, it can be placed outside the parentheses: <code>repeat(3) {'{'} println(it) {'}'}</code>.</li>
+    <li><strong>Shared Mutable Captures:</strong> If a captured local variable is reassigned anywhere (by the outer function or any closure), the compiler automatically boxes it into a single-slot heap cell so all closures share live mutations. Each loop iteration gets a fresh binding.</li>
+  </ul>
+
+  <CodeBlock
+    title="closures.aion"
+    code={`fn apply(f: (Int) -> Int, x: Int) = f(x)
+
+println(apply({ x -> x * x }, 7))        // 49
+println(apply({ it + 1 }, 41))           // 42 (implicit it)
+println(apply({ x: Int -> x - 1 }, 10))  // 9  (explicit parameter type)
+
+fn repeatTimes(n: Int, action: (Int) -> Unit) {
+    for i in 0..n { action(i) }
+}
+repeatTimes(3) { print("step=$it ") }
+println()`}
+    output={`49
+42
+9
+step=0 step=1 step=2`}
+  />
+
+  <h3 id="printing-functions">Printing Function Values &amp; Built-ins as Values</h3>
+  <p>
+    Function values can be printed directly, displaying their origin and signature. Built-in functions (<code>print</code>, <code>println</code>, <code>typeOf</code>, <code>hashOf</code>) can also be stored in variables or passed as <code>(Any) -&gt; ...</code> values:
+  </p>
+
+  <CodeBlock
+    title="fn_values.aion"
+    code={`import math
+
+fn add(a: Int, b: Int) = a + b
+type Point(x: Int, y: Int)
+
+println(add)                   // <function add(a: Int, b: Int) -> Int>
+println({ x: Int -> x * 2 })   // <anonymous function (x: Int) -> Int>
+println(Point)                 // <constructor Point(x: Int, y: Int) -> Point>
+println(math.toRadians)        // <stdlib function math.toRadians(degrees: Float) -> Float>
+println(println)               // <built-in function println(value: Any) -> Unit>`}
+    output={`<function add(a: Int, b: Int) -> Int>
+<anonymous function (x: Int) -> Int>
+<constructor Point(x: Int, y: Int) -> Point>
+<stdlib function math.toRadians(degrees: Float) -> Float>
+<built-in function println(value: Any) -> Unit>`}
+  />
+
+  <h2 id="overloading">Function &amp; Method Overloading</h2>
+  <p>
+    Top-level functions, type methods, operator methods (such as <code>plus</code>), and extension methods can share a name as long as their parameter lists differ in arity or types. Exact type matches are preferred over widening conversions (e.g., <code>Int</code> beats <code>Float</code> for <code>describe(1)</code>).
+  </p>
+
+  <CodeBlock
+    title="overloading.aion"
+    code={`fn describe(x: Int) = "int $x"
+fn describe(x: Float) = "float $x"
+fn describe(x: Int, y: Int) = "two ints \${x + y}"
+
+type Money(cents: Int) {
+    fn plus(o: Money) = Money(cents + o.cents)
+    fn plus(extra: Int) = Money(cents + extra)
+    fn toString() = "$$cents"
+}
+
+println(describe(1), "|", describe(2.5), "|", describe(3, 4))
+println(Money(100) + Money(5), Money(100) + 7)`}
+    output={`int 1 | float 2.5 | two ints 7
+$105 $107`}
+  />
+
+  <Callout type="note" title="Overloading Rules">
+    <code>extern fn</code>s, generic functions, and methods on <code>open</code> types or subtypes cannot be overloaded. To pass an overloaded function as a value, wrap the specific overload in a lambda: <code>{'{'} x: Int -&gt; describe(x) {'}'}</code>.
+  </Callout>
+
+  <h2 id="extension-methods">Extension Methods on Built-in &amp; Library Types</h2>
+  <p>
+    Any module can define methods on built-in types (<code>Int</code>, <code>Int32</code>, <code>Byte</code>, <code>Float</code>, <code>Bool</code>, <code>Char</code>, <code>String</code>, <code>Bytes</code>) as well as collection types (<code>List&lt;T&gt;</code>, <code>Map&lt;K, V&gt;</code>, <code>Set&lt;T&gt;</code>) or user-defined types. Inside the method body, <code>this</code> refers to the receiver.
+  </p>
+
+  <CodeBlock
+    title="extensions.aion"
+    code={`fn String.shout() = "$this!"
+fn Int.times(action: (Int) -> Unit) {
+    for i in 0..this { action(i) }
+}
+
+println("hi".shout())
+3.times { print("$it ") }
+println()`}
+    output={`hi!
+0 1 2`}
+  />
+
+  <p>
+    If your program declares an extension method with the same name and parameter types as a standard library method, your method takes precedence in your code while the standard library continues calling its own implementation internally.
+  </p>
+</DocsLayout>
