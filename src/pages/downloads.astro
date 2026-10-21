@@ -9,7 +9,71 @@ import CodeBlock from '../components/CodeBlock.astro';
       <h1 class="text-3xl font-bold text-white mb-2">Download Aion</h1>
       <p class="text-neutral-400 text-sm">
         Prebuilt binaries for v0.3.0 (Beta), Docker container usage, and instructions for building from source.
+        The newest version, with a Windows installer and the release notes, is on
+        <a class="text-[#4377df] hover:underline" href="https://github.com/aionlang/aion/releases/latest" target="_blank" rel="noopener noreferrer">GitHub Releases</a>.
       </p>
+    </div>
+
+    <!-- GitHub releases & editor -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-5">
+        <h3 class="text-lg font-bold text-white mb-2">Releases on GitHub</h3>
+        <p class="text-sm text-neutral-400 mb-4">
+          Every version is published with archives for Windows, macOS and Linux (and a Windows setup program), built by CI.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a
+            href="https://github.com/aionlang/aion/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block bg-[#4377df] hover:bg-[#3664c2] text-white text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Latest release
+          </a>
+          <a
+            href="https://github.com/aionlang/aion/releases"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block border border-[#3a3a3a] hover:border-[#4377df] text-neutral-200 text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            All releases
+          </a>
+          <a
+            href="https://github.com/aionlang/aion/blob/main/CHANGELOG.MD"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block border border-[#3a3a3a] hover:border-[#4377df] text-neutral-200 text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Changelog
+          </a>
+        </div>
+      </div>
+
+      <div class="rounded-lg bg-[#1b1b1b] border border-[#2c2c2c] p-5">
+        <h3 class="text-lg font-bold text-white mb-2">VS Code extension</h3>
+        <p class="text-sm text-neutral-400 mb-4">
+          <strong class="text-neutral-200">Aion Support</strong> adds syntax highlighting, snippets, go to definition, problems from
+          <code class="font-mono text-xs text-neutral-200">aion check</code>, run and build buttons, format-on-save and links to this documentation.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a
+            href="https://github.com/aionlang/aion-vscode"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block bg-[#4377df] hover:bg-[#3664c2] text-white text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Extension on GitHub
+          </a>
+          <a
+            href="https://github.com/aionlang/aion-vscode#readme"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block border border-[#3a3a3a] hover:border-[#4377df] text-neutral-200 text-sm font-medium py-2 px-4 rounded transition-colors"
+          >
+            Features &amp; settings
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- Platform Cards -->
