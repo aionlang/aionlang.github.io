@@ -6,6 +6,7 @@ import Callout from '../../components/Callout.astro';
 const toc = [
   { id: 'quick-start', label: 'Quick Start' },
   { id: 'cli-commands', label: 'CLI Commands Reference' },
+  { id: 'editor-support', label: 'Editor Support (VS Code)' },
   { id: 'interactive-repl', label: 'Interactive REPL (aion repl)' },
   { id: 'projects-and-deps', label: 'Projects & Dependencies' },
   { id: 'script-deps', label: 'Single-File Script Dependencies', level: 3 },
@@ -121,6 +122,14 @@ aion emit-ir hello.aion`}
       </tr>
     </tbody>
   </table>
+
+  <h2 id="editor-support">Editor Support (VS Code)</h2>
+  <p>
+    The <a href="https://github.com/aionlang/aion-vscode" target="_blank" rel="noopener noreferrer">Aion Support</a> extension adds syntax highlighting,
+    snippets, go to definition, problems from <code>aion check</code>, run, build and test commands, format-on-save through <code>aion fmt</code>,
+    and commands that open this documentation (<strong>Aion: Open Documentation</strong>). Releases of the compiler itself are on
+    <a href="https://github.com/aionlang/aion/releases" target="_blank" rel="noopener noreferrer">GitHub</a>, and the <a href="/downloads">downloads page</a> links them.
+  </p>
 
   <h2 id="interactive-repl">Interactive REPL (<code>aion repl</code>)</h2>
   <p>
